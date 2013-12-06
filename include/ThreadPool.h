@@ -33,6 +33,9 @@
   #include <thread>
   #include <mutex>
   using namespace std;
+#else
+	#include <boost/shared_ptr.hpp>
+  using namespace boost;
 #endif
 
 //common_cpp
