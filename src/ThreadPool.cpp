@@ -224,12 +224,14 @@ void ThreadPool::checkDelayedQueue(void){
 	  
 	}
 
-void ThreadPool::addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline){
+
+shared_ptr<DelayedFunctorInt> ThreadPool::addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline){
 	ThreadPool_log_info("add DelayedFunctor #%i", m_delayed_queue->size() + 1);
 	lock_guard<mutex> lock(*m_delayed_lock.get());
 	shared_ptr<DelayedFunctorInt> tmp_functor = shared_ptr<DelayedFunctorInt>(new DelayedFunctorInt(work, deadline));
 	
 	m_delayed_queue->push_back(tmp_functor);
+	return tmp_functor;
 }
 
 } /* namespace common_cpp */

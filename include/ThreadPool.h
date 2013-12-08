@@ -88,7 +88,7 @@ public:
 	 * @param work pointer to functor object
 	 */
 	virtual bool addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default);
-	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
+	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
 	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work);
 private:
   

@@ -95,7 +95,7 @@ public:
 	 * Add new functor object with given deadline
 	 * @param work pointer to functor object
 	 */
-	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
+	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
 	virtual size_t getDQueueCount(){return m_delayed_queue.get()?m_delayed_queue->size():0;}
 
 protected:
