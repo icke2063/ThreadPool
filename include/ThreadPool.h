@@ -74,7 +74,15 @@ class ThreadPool: public BasePoolInt,
 public:
 	ThreadPool();
 	virtual ~ThreadPool();
-	
+
+	/* DynamicPoolInt */
+	virtual void setLowWatermark(uint16_t low) {DynamicPoolInt::setLowWatermark(low);}
+	virtual uint16_t getLowWatermark(void){return DynamicPoolInt::getLowWatermark();}
+	virtual void setHighWatermark(uint16_t high){DynamicPoolInt::setHighWatermark(high);}
+	virtual uint16_t getHighWatermark(){return DynamicPoolInt::getHighWatermark();}
+
+	/* DelayedPoolInt */
+	virtual size_t getDQueueCount(){return DelayedPoolInt::getDQueueCount();}
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object

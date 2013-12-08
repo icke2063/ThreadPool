@@ -90,7 +90,7 @@ public:
 	 * @param work pointer to functor object
 	 */
 	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
-	size_t getDQueueCount(){return m_delayed_queue.get()?m_delayed_queue->size():0;}
+	virtual size_t getDQueueCount(){return m_delayed_queue.get()?m_delayed_queue->size():0;}
 
 protected:
   ///list of delayed functors
