@@ -72,7 +72,7 @@ class ThreadPool: public BasePoolInt,
 		  public DelayedPoolInt,
 		  public DynamicPoolInt{
 public:
-	ThreadPool();
+	ThreadPool(uint8_t worker_count = 1);
 	virtual ~ThreadPool();
 
 	/* DynamicPoolInt */

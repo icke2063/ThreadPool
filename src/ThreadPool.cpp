@@ -45,7 +45,8 @@
 namespace icke2063 {
 namespace threadpool {
 
-ThreadPool::ThreadPool(){
+ThreadPool::ThreadPool(uint8_t worker_count):
+	BasePoolInt(worker_count){
 	/**
 	 * Init Logging
 	 * - set category name

@@ -184,13 +184,15 @@ class BasePoolInt {
 #define TPI_ADD_FiFo	1
 #define TPI_ADD_LiFo	2  
 public:
-	BasePoolInt() :m_main_sleep_us(1000),m_main_running(true) {
+	BasePoolInt(uint8_t worker_count = 1) :m_main_sleep_us(10000),m_main_running(true) {
 	/* init all shared objects with new objects */
 	m_functor_queue = shared_ptr<std::deque<shared_ptr<FunctorInt> > >(new std::deque<shared_ptr<FunctorInt> >); //init functor list	;
 	m_functor_lock = shared_ptr<mutex>(new mutex()); //init mutex for functor list
 	m_worker_lock = shared_ptr<mutex>(new mutex()); //init mutex for worker list
 	  
-	addWorker();	//add at least one worker thread
+	for(int i=0;i<worker_count;i++){
+		addWorker();	//add at least one worker thread
+	}
 }
 	
 virtual ~BasePoolInt(){
