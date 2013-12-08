@@ -2,7 +2,7 @@
  * @file   ThreadPool.cpp
  * @Author icke
  * @date   28.05.2013
- * @brief  MBThreadPool implementation
+ * @brief  ThreadPool implementation
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -109,7 +109,7 @@ bool ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
  
   lock_guard<mutex> lock(*m_functor_lock.get());	//lock functor list
   
-  /* dynamic cast Functor object reference to determine correct type */
+//   dynamic cast Functor object reference to determine correct type */
   shared_ptr<FunctorInt> addable = dynamic_pointer_cast<FunctorInt>(work);
   if(!addable.get())return false;
   
@@ -134,7 +134,8 @@ bool ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
   
   return true;
   }
-  
+
+
 void ThreadPool::handleWorkerCount(void){
  
   // check functor list
@@ -147,7 +148,7 @@ void ThreadPool::handleWorkerCount(void){
     ThreadPool_log_debug("HighWatermark(): %d", getHighWatermark());
     ThreadPool_log_debug("max_queue_size: %i", max_queue_size);
 
-    /* add needed worker threads */
+    // add needed worker threads
     while (m_workerThreads.size() < getLowWatermark()) {
       //add new worker thread
       ThreadPool_log_debug("try add worker\n");
@@ -155,7 +156,7 @@ void ThreadPool::handleWorkerCount(void){
       ThreadPool_log_debug("new worker (under low): %i of %i", m_workerThreads.size(), getHighWatermark());
     }
 
-    /* add ondemand worker threads */
+//     add ondemand worker threads
     if (m_functor_queue->size() > max_queue_size && m_workerThreads.size() < getHighWatermark()) {
       //added new worker thread
       if(addWorker()){
@@ -163,7 +164,7 @@ void ThreadPool::handleWorkerCount(void){
 	}
       }
 
-  /* remove worker threads */
+//  remove worker threads
   if (m_functor_queue->size() == 0 && m_workerThreads.size() > getLowWatermark()) {
     std::list<shared_ptr<WorkerThreadInt> >::iterator workerThreads_it = m_workerThreads.begin();
     while (workerThreads_it != m_workerThreads.end()) {
@@ -182,7 +183,7 @@ void ThreadPool::handleWorkerCount(void){
   
   max_queue_size = (1<<m_workerThreads.size());			//calc new maximum waiting functor count
 }
-	
+
 DelayedPoolInt::DelayedPoolInt(){
     ///list of delayed functors
     m_delayed_queue =  shared_ptr<std::deque<shared_ptr<DelayedFunctorInt> > >(new std::deque<shared_ptr<DelayedFunctorInt> >);
@@ -205,9 +206,6 @@ void ThreadPool::checkDelayedQueue(void){
 	  }
 	    long msec;
 	  
-	  /**
-	   * @todo use foreach loop
-	   */
 	  std::deque<shared_ptr<DelayedFunctorInt> >::iterator delayed_it = m_delayed_queue->begin();
 	  while(delayed_it != m_delayed_queue->end()){
 	      
@@ -215,9 +213,7 @@ void ThreadPool::checkDelayedQueue(void){
 	    msec+=(tnow.tv_usec-(*delayed_it)->getDeadline().tv_usec)/1000;	    
 	    
 	    if(msec >= 0){
-	      /*
-	      * add current functor to queue & remove from delayed queue
-	      */
+	      // add current functor to queue & remove from delayed queue
 	      addFunctor((*delayed_it)->getFunctor());
 	      delayed_it = m_delayed_queue->erase(delayed_it);
 	      continue;
