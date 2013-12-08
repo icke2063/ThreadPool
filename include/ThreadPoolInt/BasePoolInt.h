@@ -50,6 +50,8 @@
 	#endif
 #endif
 
+#include <stdio.h>
+
 namespace icke2063 {
 namespace threadpool {
 
@@ -103,12 +105,13 @@ public:
 		
 	};
 	virtual ~WorkerThreadInt(){
+		uint16_t w_count = 0;
 	  m_worker_running = false;	//disable worker threads
 	  //at this point the worker thread should have ended -> join it
+	  while(m_status != worker_finished && w_count++ < 1000){usleep(1);}
 	  if(m_worker_thread.get() && m_worker_thread->joinable()){
 		m_worker_thread->join();
 	  }
-	  //printf("~WorkerThread\n");
 	};
 
 	/**
@@ -136,16 +139,17 @@ virtual	void thread_function(void) {
       {
 	    shared_ptr<FunctorInt>curFunctor;
 	    this_thread::yield();
+	    this_thread::sleep_for(chrono::microseconds(1000));
+	    if(!m_worker_running)return;	//running mode changed -> exit thread
+
 	    if(p_functor_lock.get()){// got correct functor  queue?
-	      
 		  lock_guard<mutex> lock(*p_functor_lock.get());// lock before queue access
-		  
-		    if(!m_worker_running)return;	//running mode changed -> exit thread
+		  if(!m_worker_running)return;	//running mode changed -> exit thread
 		    
-		    if (p_functor_queue.get() != NULL && p_functor_queue->size() > 0) {
-			    curFunctor = p_functor_queue->front(); 			// get next functor from queue
-			    p_functor_queue->pop_front();				// remove functor from queue			  
-		    }
+		  if (p_functor_queue.get() != NULL && p_functor_queue->size() > 0) {
+			curFunctor = p_functor_queue->front(); 			// get next functor from queue
+			p_functor_queue->pop_front();				// remove functor from queue
+		  }
 	    } else {
 		    m_status = worker_finished;
 		    return;
@@ -156,7 +160,6 @@ virtual	void thread_function(void) {
 		    curFunctor->functor_function(); // call handling function
 	    } else {
 		    m_status = worker_idle;			//
-		    this_thread::sleep_for(chrono::microseconds(10));
 	    }
       }
     }
@@ -194,16 +197,40 @@ public:
 		addWorker();	//add at least one worker thread
 	}
 }
-	
-virtual ~BasePoolInt(){
-m_main_running = false;	//disable ThreadPool
 
-if (m_main_thread.get() && m_main_thread->joinable())
-	m_main_thread->join();
+
+void stopBasePool(){
+	m_main_running = false;	//disable ThreadPool
+
+	{
+		// remove all queued functor objects
+		lock_guard<mutex> lock(*m_functor_lock.get());
+		m_functor_queue->clear();
+	}
+
+
+	{
+		//remove all worker objects
+		lock_guard<mutex> lock(*m_worker_lock.get());
+		m_workerThreads.clear();
+	}
+}
+
+
+virtual ~BasePoolInt(){
+	stopBasePool();
+
+	if (m_main_thread.get() && m_main_thread->joinable()){
+		m_main_thread->join();
+	}
+	m_main_thread.reset();
 }
 
 void startPoolLoop(){
-  m_main_thread.reset(new thread(&BasePoolInt::main_thread_func, this)); // create new main thread_function
+	if(m_main_thread.get() == NULL){
+		printf("start main thread\n");
+		m_main_thread.reset(new thread(&BasePoolInt::main_thread_func, this)); // create new main thread_function
+	}
 }
 
 /**
@@ -244,11 +271,11 @@ virtual bool addWorker( void ){
 	
 protected:
   	/* function called before main thread loop */
-	virtual void main_pre(void) = 0;
+	virtual void main_pre(void){};
 	/* function called within main thread loop */
-	virtual void main_loop(void) = 0;
+	virtual void main_loop(void){};
 	/* function called after main thread loop */
-	virtual void main_past(void) = 0;
+	virtual void main_past(void){};
 	
 	/**
 	 * main thread function
@@ -258,7 +285,7 @@ protected:
 	virtual void main_thread_func(void){
 	    main_pre();
 	    while (m_main_running) {
-		//m_scheduler_thread->yield();
+		this_thread::yield();
 	      main_loop();
 	      this_thread::sleep_for(chrono::microseconds(m_main_sleep_us));
 	    }
@@ -284,7 +311,8 @@ protected:
 	bool m_main_running;
 	
 private:
-  	/**
+
+	/**
 	 * Scheduler is used for creating and scheduling the WorkerThreads.
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources

@@ -59,14 +59,19 @@ ThreadPool::ThreadPool(uint8_t worker_count):
 
 ThreadPool::~ThreadPool() {
 	ThreadPool_log_info("~ThreadPool");
+	stopBasePool();
+	ThreadPool_log_info("~ThreadPool");
+
 }
 
 void ThreadPool::main_pre(void){ 
 }
 
 void ThreadPool::main_loop(void){
-  handleWorkerCount();
-  checkDelayedQueue();
+	if(m_main_running){
+		handleWorkerCount();
+		checkDelayedQueue();
+	}
 }
 
 void ThreadPool::main_past(void){
@@ -94,7 +99,7 @@ bool ThreadPool::addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode){
 	  }
 	  case TPI_ADD_Prio:
 	  default:
-	    return addPrioFunctor(tmp_functor); 
+	    return addPrioFunctor(tmp_functor);
 	}
 	return false;
 }
@@ -162,14 +167,11 @@ void ThreadPool::handleWorkerCount(void){
   if (m_functor_queue->size() == 0 && m_workerThreads.size() > getLowWatermark()) {
     std::list<shared_ptr<WorkerThreadInt> >::iterator workerThreads_it = m_workerThreads.begin();
     while (workerThreads_it != m_workerThreads.end()) {
-	if ((*workerThreads_it)->m_status == worker_idle) {
-	  shared_ptr<WorkerThread> tmp = dynamic_pointer_cast<WorkerThread> (*workerThreads_it);
-	  ThreadPool_log_debug("try finish worker thread[0x%x]: (%i of %i)",tmp.get(), m_workerThreads.size(), getHighWatermark());
-	  if(tmp.get()){ 
-	    m_workerThreads.erase(workerThreads_it);
-	    break;
-	  }
-	}
+		if ((*workerThreads_it)->m_status == worker_idle) {
+			ThreadPool_log_debug("try finish worker thread[0x%x]: (%i of %i)",tmp.get(), m_workerThreads.size(), getHighWatermark());
+			m_workerThreads.erase(workerThreads_it);
+			break;
+		}
 	++workerThreads_it;
     }
   }
