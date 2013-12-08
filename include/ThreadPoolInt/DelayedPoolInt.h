@@ -82,7 +82,13 @@ class DelayedFunctorInt{
 class DelayedPoolInt{ 
 public:  
 	DelayedPoolInt();
-	virtual ~DelayedPoolInt(){}
+	virtual ~DelayedPoolInt(){
+		{
+			// remove all delayed functor objects
+			lock_guard<mutex> lock(*m_delayed_lock.get());
+			m_delayed_queue->clear();
+		}
+	}
 
 	/**
 	 * 
