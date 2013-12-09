@@ -149,7 +149,7 @@ void ThreadPool::handleWorkerCount(void){
     ThreadPool_log_debug("max_queue_size: %i", max_queue_size);
 
     // add needed worker threads
-    while (m_workerThreads.size() < getLowWatermark()) {
+    while (getWorkerCount() < getLowWatermark()) {
       //add new worker thread
       ThreadPool_log_debug("try add worker\n");
       if(!addWorker())break;
@@ -157,7 +157,7 @@ void ThreadPool::handleWorkerCount(void){
     }
 
 //     add ondemand worker threads
-    if (m_functor_queue.size() > max_queue_size && m_workerThreads.size() < getHighWatermark()) {
+    if (m_functor_queue.size() > max_queue_size && getWorkerCount() < getHighWatermark()) {
       //added new worker thread
       if(addWorker()){
 	ThreadPool_log_debug("new worker (ondemand): %i of %i", m_workerThreads.size(), getHighWatermark());
@@ -165,23 +165,15 @@ void ThreadPool::handleWorkerCount(void){
       }
 
 //  remove worker threads
-  if (m_functor_queue.size() == 0 && m_workerThreads.size() > getLowWatermark()) {
-    std::list<shared_ptr<WorkerThreadInt> >::iterator workerThreads_it = m_workerThreads.begin();
-    while (workerThreads_it != m_workerThreads.end()) {
-		if ((*workerThreads_it)->m_status == worker_idle) {
-			ThreadPool_log_debug("try finish worker thread[0x%x]: (%i of %i)",tmp.get(), m_workerThreads.size(), getHighWatermark());
-			m_workerThreads.erase(workerThreads_it);
-			break;
-		}
-	++workerThreads_it;
-    }
+  if (m_functor_queue.size() == 0 && getWorkerCount() > getLowWatermark()) {
+	  delWorker();
   }
 
 } else {
 	ThreadPool_log_error("m_functor_lock.get() == NULL");
 }  
   
-  max_queue_size = (1<<m_workerThreads.size());			//calc new maximum waiting functor count
+  max_queue_size = (1 << getWorkerCount());			//calc new maximum waiting functor count
 }
 
 DelayedPoolInt::DelayedPoolInt(){

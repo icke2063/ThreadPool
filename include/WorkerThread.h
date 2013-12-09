@@ -56,7 +56,7 @@ namespace threadpool {
 
 class WorkerThread: public WorkerThreadInt {
 public:
-	WorkerThread(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock);
+	WorkerThread(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock, int* worker_count);
 
 	virtual ~WorkerThread();
 

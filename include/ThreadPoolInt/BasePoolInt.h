@@ -95,11 +95,12 @@ public:
 	 * @param functor_queue: reference threadpool functor queue
 	 * @param functor_lock:  reference to threadpool functor queue lock object
 	 */
-	WorkerThreadInt(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock):
-		m_worker_running(true),
+	WorkerThreadInt(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock,int *worker_count):
+		m_worker_running(true),p_worker_count(worker_count),
 		p_functor_queue(functor_queue),p_functor_lock(functor_lock),m_status(worker_idle){
 		// create new worker thread
 		m_worker_thread.reset(new thread(&WorkerThreadInt::thread_function, this));
+		*p_worker_count += 1;
 		
 	};
 	virtual ~WorkerThreadInt(){
@@ -111,6 +112,7 @@ public:
 	  if(m_worker_thread.get() && m_worker_thread->joinable()){
 		m_worker_thread->join();
 	  }
+	  *p_worker_count -= 1;
 	};
 
 	/**
@@ -176,6 +178,8 @@ private:
 	 *
 	 */
 	bool m_worker_running;
+
+	int *p_worker_count;
 };
 ///Abstract ThreadPool interface
 class BasePoolInt {
@@ -187,7 +191,7 @@ class BasePoolInt {
 #define TPI_ADD_FiFo	1
 #define TPI_ADD_LiFo	2  
 public:
-	BasePoolInt(uint8_t worker_count = 1) :m_main_sleep_us(10000),m_main_running(true) {
+	BasePoolInt(uint8_t worker_count = 1) :m_main_sleep_us(10000),m_main_running(true),m_worker_count(0) {
 	/* init all shared objects with new objects */
 	m_functor_lock.reset(new mutex()); //init mutex for functor list
 	m_worker_lock.reset(new mutex()); //init mutex for worker list
@@ -212,6 +216,8 @@ void stopBasePool(){
 		lock_guard<mutex> lock(*m_worker_lock.get());
 		m_workerThreads.clear();
 	}
+
+	while(m_worker_count)usleep(1);
 }
 
 
@@ -246,10 +252,13 @@ virtual bool addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_
     m_functor_queue.push_front(work);
     return true;
 }
+
+
 /**
  * get current worker count within worker list
  */
-uint16_t getWorkerCount(){return m_workerThreads.size();}
+size_t getWorkerCount(void){return m_workerThreads.size();}
+
 
 /**
  * get current functor size of functor queue
@@ -260,7 +269,7 @@ virtual bool addWorker( void ){
   if(m_main_running && m_worker_lock.get()){
 	    lock_guard<mutex> lock(*m_worker_lock.get()); // lock before worker access
   try{
-	    shared_ptr<WorkerThreadInt> newWorker = shared_ptr<WorkerThreadInt>(new WorkerThreadInt(&m_functor_queue, m_functor_lock.get()));
+	    shared_ptr<WorkerThreadInt> newWorker = shared_ptr<WorkerThreadInt>(new WorkerThreadInt(&m_functor_queue, m_functor_lock.get(),&m_worker_count));
 	    m_workerThreads.push_back(newWorker);    
   }catch(std::exception e){
   return false; 
@@ -270,6 +279,22 @@ virtual bool addWorker( void ){
   return false;
 }
 	
+
+	virtual bool delWorker(void) {
+		if (m_main_running && m_worker_lock.get()) {
+			lock_guard<mutex> lock(*m_worker_lock.get()); // lock before worker access
+			std::list<shared_ptr<WorkerThreadInt> >::iterator workerThreads_it = m_workerThreads.begin();
+			while (workerThreads_it != m_workerThreads.end()) {
+				if ((*workerThreads_it)->m_status == worker_idle) {
+					m_workerThreads.erase(workerThreads_it);
+					return true;
+				}
+				++workerThreads_it;
+			}
+		}
+		return false;
+	}
+
 	
 protected:
   	/* function called before main thread loop */
@@ -293,14 +318,8 @@ protected:
 	    }
 	    main_past();
 	}
-		
+
 protected:
-	///list of used WorkerThreadInts
-	std::list<shared_ptr<WorkerThreadInt> > 		m_workerThreads;
-
-	///lock worker queue
-	std::auto_ptr<mutex> 				m_worker_lock;
-
 	///list of waiting functors
 	std::deque<shared_ptr<FunctorInt> >  	m_functor_queue;
 
@@ -313,6 +332,11 @@ protected:
 	bool m_main_running;
 	
 private:
+	///list of used WorkerThreadInts
+	std::list<shared_ptr<WorkerThreadInt> > 		m_workerThreads;
+
+	///lock worker queue
+	std::auto_ptr<mutex> 				m_worker_lock;
 
 	/**
 	 * Scheduler is used for creating and scheduling the WorkerThreads.
@@ -320,6 +344,7 @@ private:
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
 	std::auto_ptr<thread> m_main_thread;
+	int		m_worker_count;
 };
 
 } /* namespace common_cpp */
