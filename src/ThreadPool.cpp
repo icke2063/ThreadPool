@@ -113,8 +113,8 @@ bool ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
   shared_ptr<FunctorInt> addable = dynamic_pointer_cast<FunctorInt>(work);
   if(!addable.get())return false;
   
-  std::deque<shared_ptr<FunctorInt> >::iterator queue_it = m_functor_queue->begin();
-  while(queue_it != m_functor_queue->end()){
+  std::deque<shared_ptr<FunctorInt> >::iterator queue_it = m_functor_queue.begin();
+  while(queue_it != m_functor_queue.end()){
     
     {
       shared_ptr<PrioFunctorInt> queue_item = dynamic_pointer_cast<PrioFunctorInt>(*queue_it);
@@ -122,7 +122,7 @@ bool ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
       
       if(queue_item.get() && param_item.get()){
 	if(queue_item->getPriority() < param_item->getPriority()){
-	  m_functor_queue->insert(queue_it,addable);	//insert before
+	  m_functor_queue.insert(queue_it,addable);	//insert before
 	  return true;
 	}
       }
@@ -130,7 +130,7 @@ bool ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
     ++queue_it;
   }
   // not inserted yet -> push it at the end
-  m_functor_queue->push_back(addable);
+  m_functor_queue.push_back(addable);
   
   return true;
   }
@@ -157,7 +157,7 @@ void ThreadPool::handleWorkerCount(void){
     }
 
 //     add ondemand worker threads
-    if (m_functor_queue->size() > max_queue_size && m_workerThreads.size() < getHighWatermark()) {
+    if (m_functor_queue.size() > max_queue_size && m_workerThreads.size() < getHighWatermark()) {
       //added new worker thread
       if(addWorker()){
 	ThreadPool_log_debug("new worker (ondemand): %i of %i", m_workerThreads.size(), getHighWatermark());
@@ -165,7 +165,7 @@ void ThreadPool::handleWorkerCount(void){
       }
 
 //  remove worker threads
-  if (m_functor_queue->size() == 0 && m_workerThreads.size() > getLowWatermark()) {
+  if (m_functor_queue.size() == 0 && m_workerThreads.size() > getLowWatermark()) {
     std::list<shared_ptr<WorkerThreadInt> >::iterator workerThreads_it = m_workerThreads.begin();
     while (workerThreads_it != m_workerThreads.end()) {
 		if ((*workerThreads_it)->m_status == worker_idle) {
@@ -186,10 +186,9 @@ void ThreadPool::handleWorkerCount(void){
 
 DelayedPoolInt::DelayedPoolInt(){
     ///list of delayed functors
-    m_delayed_queue =  shared_ptr<std::deque<shared_ptr<DelayedFunctorInt> > >(new std::deque<shared_ptr<DelayedFunctorInt> >);
 
     //lock functor queue
-    m_delayed_lock = shared_ptr<mutex>(new mutex());	
+    m_delayed_lock.reset(new mutex());
 }
 
 
@@ -206,8 +205,8 @@ void ThreadPool::checkDelayedQueue(void){
 	  }
 	    long msec;
 	  
-	  std::deque<shared_ptr<DelayedFunctorInt> >::iterator delayed_it = m_delayed_queue->begin();
-	  while(delayed_it != m_delayed_queue->end()){
+	  std::deque<shared_ptr<DelayedFunctorInt> >::iterator delayed_it = m_delayed_queue.begin();
+	  while(delayed_it != m_delayed_queue.end()){
 	      
 	    msec=(tnow.tv_sec-(*delayed_it)->getDeadline().tv_sec)*1000;
 	    msec+=(tnow.tv_usec-(*delayed_it)->getDeadline().tv_usec)/1000;	    
@@ -215,7 +214,7 @@ void ThreadPool::checkDelayedQueue(void){
 	    if(msec >= 0){
 	      // add current functor to queue & remove from delayed queue
 	      addFunctor((*delayed_it)->getFunctor());
-	      delayed_it = m_delayed_queue->erase(delayed_it);
+	      delayed_it = m_delayed_queue.erase(delayed_it);
 	      continue;
 	    }
 	    ++delayed_it;
@@ -229,7 +228,7 @@ shared_ptr<DelayedFunctorInt> ThreadPool::addDelayedFunctor(shared_ptr<FunctorIn
 	lock_guard<mutex> lock(*m_delayed_lock.get());
 	shared_ptr<DelayedFunctorInt> tmp_functor = shared_ptr<DelayedFunctorInt>(new DelayedFunctorInt(work, deadline));
 	
-	m_delayed_queue->push_back(tmp_functor);
+	m_delayed_queue.push_back(tmp_functor);
 	return tmp_functor;
 }
 

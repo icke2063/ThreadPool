@@ -52,12 +52,12 @@ public:
 	 * set low watermark
 	 * @param low: low count of WorkerThreads
 	 */
-	virtual void setLowWatermark(uint16_t low) {LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;}
+	void setLowWatermark(uint16_t low) {LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;}
 	/**
 	 * get low count of WorkerThreads
 	 * @return lowWatermark
 	 */
-	virtual uint16_t getLowWatermark(void){
+	uint16_t getLowWatermark(void){
 		return LowWatermark;
 	}
 
@@ -65,7 +65,7 @@ public:
 	 * set high watermark
 	 * @param high: high count of WorkerThreadInts
 	 */
-	virtual void setHighWatermark(uint16_t high){
+	void setHighWatermark(uint16_t high){
 		HighWatermark = ((high > LowWatermark) && (high < WORKERTHREAD_MAX)) ? high : WORKERTHREAD_MAX;
 	}
 
@@ -73,7 +73,7 @@ public:
 	 * Get high count of WorkerThreads
 	 * @return highWatermark
 	 */
-	virtual uint16_t getHighWatermark(){
+	uint16_t getHighWatermark(){
 		return HighWatermark;
 	}
 

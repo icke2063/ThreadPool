@@ -64,7 +64,6 @@ class DelayedFunctorInt{
     */
    void resetDeadline(){gettimeofday(&m_deadline,0);}
 
-
    /**
     * get stored FunctorInt
     */
@@ -86,9 +85,12 @@ public:
 		{
 			// remove all delayed functor objects
 			lock_guard<mutex> lock(*m_delayed_lock.get());
-			m_delayed_queue->clear();
+			m_delayed_queue.clear();
 		}
 	}
+
+	size_t getDQueueCount(){return m_delayed_queue.size();}
+
 
 	/**
 	 * 
@@ -102,14 +104,13 @@ public:
 	 * @param work pointer to functor object
 	 */
 	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
-	virtual size_t getDQueueCount(){return m_delayed_queue.get()?m_delayed_queue->size():0;}
 
 protected:
   ///list of delayed functors
-  shared_ptr<std::deque<shared_ptr<DelayedFunctorInt> > > 	m_delayed_queue;
+  std::deque<shared_ptr<DelayedFunctorInt> > m_delayed_queue;
 
   ///lock functor queue
-  shared_ptr<mutex>					m_delayed_lock;
+  std::auto_ptr<mutex>					m_delayed_lock;
   
 };
 } /* namespace common_cpp */

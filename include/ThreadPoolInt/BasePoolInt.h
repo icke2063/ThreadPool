@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <deque>
 #include <list>
+#include <auto_ptr.h>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
@@ -45,9 +46,6 @@
   #include <boost/shared_ptr.hpp>
   #include <boost/thread.hpp>
   using namespace boost;
-	#ifndef unique_ptr
-  	  #define unique_ptr scoped_ptr
-	#endif
 #endif
 
 #include <stdio.h>
@@ -97,7 +95,7 @@ public:
 	 * @param functor_queue: reference threadpool functor queue
 	 * @param functor_lock:  reference to threadpool functor queue lock object
 	 */
-	WorkerThreadInt(shared_ptr<std::deque<shared_ptr<FunctorInt> > > functor_queue, shared_ptr<mutex> functor_lock):
+	WorkerThreadInt(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock):
 		m_worker_running(true),
 		p_functor_queue(functor_queue),p_functor_lock(functor_lock),m_status(worker_idle){
 		// create new worker thread
@@ -107,6 +105,7 @@ public:
 	virtual ~WorkerThreadInt(){
 		uint16_t w_count = 0;
 	  m_worker_running = false;	//disable worker threads
+
 	  //at this point the worker thread should have ended -> join it
 	  while(m_status != worker_finished && w_count++ < 1000){usleep(1);}
 	  if(m_worker_thread.get() && m_worker_thread->joinable()){
@@ -123,8 +122,8 @@ public:
 	worker_status m_status;					//status of current thread
 
 protected:
-	shared_ptr<std::deque<shared_ptr<FunctorInt> > > p_functor_queue;	//reference to queue of ThreadPool functor list
-	shared_ptr<mutex> p_functor_lock;				//reference to lock for ThreadPool functor list
+	std::deque<shared_ptr<FunctorInt> > *p_functor_queue;	//reference to queue of ThreadPool functor list
+	mutex *p_functor_lock;				//reference to lock for ThreadPool functor list
 
 	/**
 	 * Worker thread function
@@ -139,14 +138,15 @@ virtual	void thread_function(void) {
       {
 	    shared_ptr<FunctorInt>curFunctor;
 	    this_thread::yield();
-	    this_thread::sleep_for(chrono::microseconds(1000));
+	    usleep(1000);
+	    //this_thread::sleep_for(chrono::microseconds(1000));
 	    if(!m_worker_running)return;	//running mode changed -> exit thread
 
-	    if(p_functor_lock.get()){// got correct functor  queue?
-		  lock_guard<mutex> lock(*p_functor_lock.get());// lock before queue access
+	    if(p_functor_lock){// got correct functor  queue?
+		  lock_guard<mutex> lock(*p_functor_lock);// lock before queue access
 		  if(!m_worker_running)return;	//running mode changed -> exit thread
 		    
-		  if (p_functor_queue.get() != NULL && p_functor_queue->size() > 0) {
+		  if (p_functor_queue && p_functor_queue->size() > 0) {
 			curFunctor = p_functor_queue->front(); 			// get next functor from queue
 			p_functor_queue->pop_front();				// remove functor from queue
 		  }
@@ -170,7 +170,7 @@ private:
   	/**
 	 * worker thread object
 	 */
-	unique_ptr<thread> m_worker_thread;
+	std::auto_ptr<thread> m_worker_thread;
 	/**
 	 * running flag for worker thread
 	 *
@@ -189,9 +189,8 @@ class BasePoolInt {
 public:
 	BasePoolInt(uint8_t worker_count = 1) :m_main_sleep_us(10000),m_main_running(true) {
 	/* init all shared objects with new objects */
-	m_functor_queue = shared_ptr<std::deque<shared_ptr<FunctorInt> > >(new std::deque<shared_ptr<FunctorInt> >); //init functor list	;
-	m_functor_lock = shared_ptr<mutex>(new mutex()); //init mutex for functor list
-	m_worker_lock = shared_ptr<mutex>(new mutex()); //init mutex for worker list
+	m_functor_lock.reset(new mutex()); //init mutex for functor list
+	m_worker_lock.reset(new mutex()); //init mutex for worker list
 	  
 	for(int i=0;i<worker_count;i++){
 		addWorker();	//add at least one worker thread
@@ -205,9 +204,8 @@ void stopBasePool(){
 	{
 		// remove all queued functor objects
 		lock_guard<mutex> lock(*m_functor_lock.get());
-		m_functor_queue->clear();
+		m_functor_queue.clear();
 	}
-
 
 	{
 		//remove all worker objects
@@ -218,12 +216,16 @@ void stopBasePool(){
 
 
 virtual ~BasePoolInt(){
-	stopBasePool();
+
+	m_main_running = false;	//disable ThreadPool
 
 	if (m_main_thread.get() && m_main_thread->joinable()){
 		m_main_thread->join();
 	}
 	m_main_thread.reset();
+
+	stopBasePool();
+
 }
 
 void startPoolLoop(){
@@ -241,7 +243,7 @@ void startPoolLoop(){
   */
 virtual bool addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default){
     lock_guard<mutex> lock(*m_functor_lock.get());
-    m_functor_queue->push_front(work);
+    m_functor_queue.push_front(work);
     return true;
 }
 /**
@@ -252,13 +254,13 @@ uint16_t getWorkerCount(){return m_workerThreads.size();}
 /**
  * get current functor size of functor queue
  */
-uint16_t getQueueCount(){return m_functor_queue.get()?m_functor_queue->size():0;}
+uint16_t getQueueCount(){return m_functor_queue.size();}
 	
 virtual bool addWorker( void ){
-  if(m_worker_lock.get()){
+  if(m_main_running && m_worker_lock.get()){
 	    lock_guard<mutex> lock(*m_worker_lock.get()); // lock before worker access
   try{
-	    shared_ptr<WorkerThreadInt> newWorker = shared_ptr<WorkerThreadInt>(new WorkerThreadInt(m_functor_queue, m_functor_lock));
+	    shared_ptr<WorkerThreadInt> newWorker = shared_ptr<WorkerThreadInt>(new WorkerThreadInt(&m_functor_queue, m_functor_lock.get()));
 	    m_workerThreads.push_back(newWorker);    
   }catch(std::exception e){
   return false; 
@@ -297,13 +299,13 @@ protected:
 	std::list<shared_ptr<WorkerThreadInt> > 		m_workerThreads;
 
 	///lock worker queue
-	shared_ptr<mutex> 				m_worker_lock;
+	std::auto_ptr<mutex> 				m_worker_lock;
 
 	///list of waiting functors
-	shared_ptr<std::deque<shared_ptr<FunctorInt> > > 	m_functor_queue;
+	std::deque<shared_ptr<FunctorInt> >  	m_functor_queue;
 
 	///lock functor queue
-	shared_ptr<mutex>				m_functor_lock;
+	std::auto_ptr<mutex>				m_functor_lock;
 
 	/// sleep time between every loop of main thread 
 	uint32_t m_main_sleep_us;
@@ -317,7 +319,7 @@ private:
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
-	unique_ptr<thread> m_main_thread;
+	std::auto_ptr<thread> m_main_thread;
 };
 
 } /* namespace common_cpp */
