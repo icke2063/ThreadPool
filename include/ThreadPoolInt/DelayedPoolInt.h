@@ -65,6 +65,12 @@ class DelayedFunctorInt{
    void resetDeadline(){gettimeofday(&m_deadline,0);}
 
    /**
+   * set Deadline to given deadline
+   */
+  void renewDeadline(struct timeval deadline){m_deadline = deadline;}
+
+
+   /**
     * get stored FunctorInt
     */
    shared_ptr<FunctorInt> getFunctor(){return m_functor;}
