@@ -44,15 +44,23 @@ namespace threadpool {
   
 class DynamicPoolInt{ 
 public:  
-	DynamicPoolInt():max_queue_size(1),HighWatermark(1), LowWatermark(1){}
+	DynamicPoolInt(uint8_t worker_count = 1):
+		max_queue_size(1),HighWatermark(1), LowWatermark(1),dynamic_enabled(false)
+	{
+		setHighWatermark(worker_count);
+		setLowWatermark(worker_count);
+	}
 	virtual ~DynamicPoolInt(){}
-	
 	
 	/**
 	 * set low watermark
 	 * @param low: low count of WorkerThreads
 	 */
-	void setLowWatermark(uint16_t low) {LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;}
+	void setLowWatermark(uint16_t low) {
+		if(dynamic_enabled){
+			LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;
+		}
+	}
 	/**
 	 * get low count of WorkerThreads
 	 * @return lowWatermark
@@ -66,7 +74,9 @@ public:
 	 * @param high: high count of WorkerThreadInts
 	 */
 	void setHighWatermark(uint16_t high){
-		HighWatermark = ((high > LowWatermark) && (high < WORKERTHREAD_MAX)) ? high : WORKERTHREAD_MAX;
+		if(dynamic_enabled){
+			HighWatermark = ((high > LowWatermark) && (high < WORKERTHREAD_MAX)) ? high : WORKERTHREAD_MAX;
+		}
 	}
 
 	/**
@@ -76,6 +86,9 @@ public:
 	uint16_t getHighWatermark(){
 		return HighWatermark;
 	}
+
+	void setDynEnable(bool enable){dynamic_enabled = enable;}
+	bool isDynEnabled( void ){return dynamic_enabled;}
 
 protected:
   	/**
@@ -89,6 +102,7 @@ protected:
 protected:
   	uint16_t LowWatermark;	//low count of worker threads
 	uint16_t HighWatermark;	//high count of worker threads
+	bool	dynamic_enabled;
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */

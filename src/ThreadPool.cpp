@@ -46,7 +46,7 @@ namespace icke2063 {
 namespace threadpool {
 
 ThreadPool::ThreadPool(uint8_t worker_count):
-	BasePoolInt(worker_count){
+	BasePoolInt(worker_count), DynamicPoolInt(worker_count){
 	/**
 	 * Init Logging
 	 * - set category name
@@ -69,7 +69,10 @@ void ThreadPool::main_pre(void){
 
 void ThreadPool::main_loop(void){
 	if(m_main_running){
-		handleWorkerCount();
+		if(isDynEnabled()){
+			/* dynamic worker handling enabled -> handle current worker count */
+			handleWorkerCount();
+		}
 		checkDelayedQueue();
 	}
 }
