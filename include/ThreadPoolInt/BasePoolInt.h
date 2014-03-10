@@ -34,7 +34,6 @@
 #include <deque>
 #include <list>
 #include <unistd.h>
-#include <auto_ptr.h>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
