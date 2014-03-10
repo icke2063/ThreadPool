@@ -116,7 +116,7 @@ protected:
   std::deque<shared_ptr<DelayedFunctorInt> > m_delayed_queue;
 
   ///lock functor queue
-  std::auto_ptr<mutex>					m_delayed_lock;
+  unique_ptr<mutex>					m_delayed_lock;
   
 };
 } /* namespace common_cpp */

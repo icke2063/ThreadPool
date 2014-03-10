@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <deque>
 #include <list>
+#include <unistd.h>
 #include <auto_ptr.h>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
@@ -46,6 +47,10 @@
   #include <boost/shared_ptr.hpp>
   #include <boost/thread.hpp>
   using namespace boost;
+
+#ifndef unique_ptr
+	#define unique_ptr scoped_ptr
+#endif
 #endif
 
 #include <stdio.h>
@@ -172,7 +177,7 @@ private:
   	/**
 	 * worker thread object
 	 */
-	std::auto_ptr<thread> m_worker_thread;
+	unique_ptr<thread> m_worker_thread;
 	/**
 	 * running flag for worker thread
 	 *
@@ -324,7 +329,7 @@ protected:
 	std::deque<shared_ptr<FunctorInt> >  	m_functor_queue;
 
 	///lock functor queue
-	std::auto_ptr<mutex>				m_functor_lock;
+	unique_ptr<mutex>				m_functor_lock;
 
 	/// sleep time between every loop of main thread 
 	uint32_t m_main_sleep_us;
@@ -336,14 +341,14 @@ private:
 	std::list<shared_ptr<WorkerThreadInt> > 		m_workerThreads;
 
 	///lock worker queue
-	std::auto_ptr<mutex> 				m_worker_lock;
+	unique_ptr<mutex> 				m_worker_lock;
 
 	/**
 	 * Scheduler is used for creating and scheduling the WorkerThreads.
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
-	std::auto_ptr<thread> m_main_thread;
+	unique_ptr<thread> m_main_thread;
 	int		m_worker_count;
 };
 
