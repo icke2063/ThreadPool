@@ -35,8 +35,8 @@
 namespace icke2063 {
 namespace threadpool {
 
-WorkerThread::WorkerThread(shared_ptr<std::deque<shared_ptr<FunctorInt> > > functor_queue, shared_ptr<mutex> functor_lock) :
-		WorkerThreadInt(functor_queue, functor_lock) {
+WorkerThread::WorkerThread(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock,int *worker_count) :
+		WorkerThreadInt(functor_queue, functor_lock, worker_count) {
 
 	WorkerThread_log_info("WorkerThread");
 
