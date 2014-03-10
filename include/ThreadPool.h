@@ -60,6 +60,39 @@
 namespace icke2063 {
 namespace threadpool {
 
+/**
+ * @class template class for reference parameter object
+ * Sometimes it is useful to reference a non shared object into a functor.
+ * But here is the problem on external deletion of the object while the functor
+ * is in queue or while the referenced object is in use.
+ *
+ * So we can use this functor parameter template (as shared_ptr object ;-)) to store
+ * the normal pointer reference and a mutex member variable.
+ *
+ * The "stored" object has to reset its pointer reference in its copy of the parameter object.
+ * So all other objects know that the reference is not valid anymore. On each call
+ * of the referenced object the caller has to lock the reference.
+ */
+template <class T>
+class Functor_Ext_Ref {
+	mutex m_lock;
+	T *m_ext_ref;
+public:
+	Functor_Ext_Ref(T ext_ref) :
+		m_ext_ref(ext_ref) {}
+
+	Functor_Ext_Ref() { setRef(NULL); }
+
+	mutex& getLock(void) { return m_lock; }
+
+	T *getRef(void) { return m_ext_ref; }
+
+	void setRef(T *ext_ref) {
+		lock_guard<mutex> g(m_lock);
+		m_ext_ref = ext_ref;
+	}
+};
+
 class Functor:public FunctorInt,
 	      public PrioFunctorInt{  
 public:
