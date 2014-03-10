@@ -108,7 +108,6 @@ public:
 	  if(m_worker_thread.get() && m_worker_thread->joinable()){
 		m_worker_thread->join();
 	  }
-	  //printf("~WorkerThread\n");
 	};
 
 	/**
