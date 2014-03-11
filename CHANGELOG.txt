@@ -1,3 +1,9 @@
+v0.0.2
+------
+ * add functor_param template
+ * replace auto_ptr by unique_ptr
+ * some code cosmetics
+
 v0.0.1
 ------
  * initial version with all bug ;-)
