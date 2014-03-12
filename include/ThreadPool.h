@@ -78,7 +78,7 @@ class Functor_Ext_Ref {
 	mutex m_lock;
 	T *m_ext_ref;
 public:
-	Functor_Ext_Ref(T ext_ref) :
+	Functor_Ext_Ref(T *ext_ref) :
 		m_ext_ref(ext_ref) {}
 
 	Functor_Ext_Ref() { setRef(NULL); }
