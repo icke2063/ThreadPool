@@ -240,7 +240,7 @@ virtual ~BasePoolInt(){
 
 void startPoolLoop(){
 	if(m_main_thread.get() == NULL){
-		printf("start main thread\n");
+		//printf("start main thread\n");
 		m_main_thread.reset(new thread(&BasePoolInt::main_thread_func, this)); // create new main thread_function
 	}
 }
