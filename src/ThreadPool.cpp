@@ -98,6 +98,7 @@ void ThreadPool::startPoolLoop() {
 				ThreadPool_log_debug("new main thread[%p]\n", this);
 				m_main_thread.reset(new thread(&ThreadPool::main_thread_func, this)); // create new main thread_function
 			} catch (std::exception e) {
+				ThreadPool_log_error("init main_thread failure: %s", e.what());
 
 			}
 		}
