@@ -1,3 +1,26 @@
+v0.1.0
+------
+ * reorganize Threadpool interfaces
+	- reduce implementation code from header
+	- add implementation to ThreadPool
+	- reduce usage of smart_pointer to zero in base interfaces
+ * move Ext_Ref* -> own header file
+ * add DummyFonctor class
+ * add Test application
+ * reduce big locked blocks -> more small lock blocks
+ * change WorkerThread destructor -> 	blocking if functor_function blocked,
+					but join is called everytime -> correct way to do
+
+
+v0.0.4
+------
+ * change Functor_Ext_Ref -> common Ext_Ref
+ * add Ext_Ref_Int
+
+v0.0.3
+------
+ * Bugfix Functor_Ext_Ref template
+
 v0.0.2
 ------
  * add functor_param template
