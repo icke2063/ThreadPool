@@ -60,6 +60,7 @@ namespace icke2063 {
 namespace threadpool {
 
 class WorkerThread: public WorkerThreadInt {
+	friend class ThreadPool;
 public:
 	WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference);
 
@@ -78,6 +79,7 @@ public:
 	};
 
 	enum worker_status getStatus(){return m_status;}
+
 
 private:
 
@@ -104,6 +106,11 @@ private:
 	 *
 	 */
 	bool m_worker_running;
+
+	/**
+	 * flag for fast shutdown of this WorkerThread
+	 */
+	bool m_fast_shutdown;
 
 	/**
 	 * shared reference to basepool object

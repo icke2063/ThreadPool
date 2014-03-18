@@ -37,6 +37,7 @@ namespace threadpool {
 
 WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
 	m_worker_running(true),
+	m_fast_shutdown(false),
 	m_status(worker_idle),
 	sp_basepool(sp_reference) {
 
@@ -52,6 +53,8 @@ WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
 }
 
 WorkerThread::~WorkerThread() {
+
+	int wait_count=0;
 	WorkerThread_log_info("~WorkerThread[%p]\n", this);
 
 	m_worker_running = false; //disable worker thread
@@ -60,21 +63,22 @@ WorkerThread::~WorkerThread() {
 	 * wait for ending worker thread function
 	 * @todo how to kill blocked thread function?
 	 */
-	while (m_status != worker_finished) {
-		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this);
-		usleep(1000);
+	while (m_status != worker_finished && !(m_fast_shutdown && wait_count++ > 1000)) {
+		WorkerThread_log_trace("~wait for finish worker[%p]\n", this);
+		usleep(10);
 	}
 
-//at this point the worker thread should have ended -> join it
-	if (m_worker_thread.get()
-			&& m_worker_thread->joinable()) {
-		WorkerThread_log_trace("wait for finish worker[%p]: %d\n", this, w_count);
-		m_worker_thread->join();
-		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this, w_count);
+
+	if (m_status == worker_finished) {
+		//at this point the worker thread should have ended -> join it
+		if (m_worker_thread.get() && m_worker_thread->joinable()) {
+			m_worker_thread->join();
+		}
 	} else {
-		// kill thread function !!! but how ?
+		WorkerThread_log_error("Reset unfinished thread[%p]\n", this);
+		m_worker_thread.reset(NULL);
 	}
-	WorkerThread_log_debug("~~WorkerThread[%p]", this);
+	WorkerThread_log_debug("~~WorkerThread[%p]\n", this);
 
 }
 

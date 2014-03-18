@@ -267,10 +267,15 @@ void ThreadPool::clearQueue(void){
 void ThreadPool::clearWorker(void){
 	lock_guard<mutex> g(m_worker_lock);
 
-	worker_list_type::iterator queue_it = m_workerThreads.begin();
-	while(queue_it != m_workerThreads.end()){
-		delete *queue_it;
-		queue_it = m_workerThreads.erase(queue_it);
+	worker_list_type::iterator worker_it = m_workerThreads.begin();
+	while(worker_it != m_workerThreads.end()){
+
+		WorkerThread *worker = dynamic_cast<WorkerThread*>(*worker_it);
+		if(worker){
+			worker->m_fast_shutdown = true;
+		}
+		delete *worker_it;
+		worker_it = m_workerThreads.erase(worker_it);
 	}
 }
 
