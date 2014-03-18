@@ -61,7 +61,7 @@ WorkerThread::~WorkerThread() {
 	 * @todo how to kill blocked thread function?
 	 */
 	while (m_status != worker_finished) {
-		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this, w_count);
+		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this);
 		usleep(1000);
 	}
 
