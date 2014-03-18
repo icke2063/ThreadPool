@@ -52,8 +52,6 @@ WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
 }
 
 WorkerThread::~WorkerThread() {
-	uint16_t w_count = 0;
-
 	WorkerThread_log_info("~WorkerThread[%p]\n", this);
 
 	m_worker_running = false; //disable worker thread
@@ -62,15 +60,17 @@ WorkerThread::~WorkerThread() {
 	 * wait for ending worker thread function
 	 * @todo how to kill blocked thread function?
 	 */
-	while (m_status != worker_finished && w_count++ < 1000) {
+	while (m_status != worker_finished) {
 		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this, w_count);
 		usleep(1000);
 	}
 
 //at this point the worker thread should have ended -> join it
-	if (m_status == worker_finished && m_worker_thread.get()
+	if (m_worker_thread.get()
 			&& m_worker_thread->joinable()) {
+		WorkerThread_log_trace("wait for finish worker[%p]: %d\n", this, w_count);
 		m_worker_thread->join();
+		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this, w_count);
 	} else {
 		// kill thread function !!! but how ?
 	}
