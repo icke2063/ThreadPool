@@ -32,11 +32,11 @@ namespace threadpool {
   
 class DynamicPoolInt{ 
 public:  
-	DynamicPoolInt(uint8_t worker_count = 1):
+	DynamicPoolInt(uint8_t worker_count = 1, bool dyn_enable = false):
 		max_queue_size(1),
 		HighWatermark(1),
 		LowWatermark(1),
-		dynamic_enabled(false)
+		dynamic_enabled(dyn_enable)
 	{
 		setHighWatermark(worker_count);
 		setLowWatermark(worker_count);
@@ -92,9 +92,9 @@ protected:
 	virtual void handleWorkerCount(void) = 0;
 	long max_queue_size;
 protected:
-  	uint16_t LowWatermark;	//low count of worker threads
-	uint16_t HighWatermark;	//high count of worker threads
-	bool	dynamic_enabled;
+  	uint16_t LowWatermark;		//low count of worker threads
+	uint16_t HighWatermark;		//high count of worker threads
+	bool	dynamic_enabled;	//enable flag
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */
