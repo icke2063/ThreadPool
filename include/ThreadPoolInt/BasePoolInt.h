@@ -4,7 +4,7 @@
  * @date   26.05.2013
  *
  * @brief	Base Interface for a "Threadpool". Therefore within this file the BasePool, WorkerThread and Functor
- * 		classes are defined. The Threadpool shall be used to handle Functor
+ * 		classes are defined. The Threadpool shall be used to store Functor
  * 		objects. These functors are handled by WorkerThreads.
  * 		The inherit class has to define the abstract functions with own or external thread and mutex
  * 		implementations (e.g. c++11, boost...).
@@ -73,6 +73,7 @@ public:
  */
 
 class WorkerThreadInt {
+	friend class BasePoolInt;
 public:
 	/**
 	 * Standard Constructor
@@ -90,9 +91,9 @@ protected:
 	 * This functions loops over the functor queue and if there is sth.
 	 * to do DO IT ;-)
 	 *
-	 * Every functor will be removed from list before handling it.
+	 * Every functor has to be removed from list before handling it.
 	 */
-virtual	void worker_function(void) = 0;
+	virtual	void worker_function(void) = 0;
 };
 
 
@@ -154,16 +155,12 @@ protected:
 	 * remove all queued functor objects
 	 * - lock functor queue
 	 * - remove/delete each element of list
-	 * DEFAULT IMPLEMENTATION
-	 * - not thread safe
 	 */
 	virtual void clearQueue(void) = 0;
 
 	/**
 	 * remove all worker objects
 	 * - remove/delete each element of list
-	 * DEFAULT IMPLEMENTATION
-	 * - not thread safe
 	 */
 	virtual void clearWorker(void) = 0;
 
@@ -177,7 +174,6 @@ protected:
 	worker_list_type	m_workerThreads;
 
 };
-
 
 } /* namespace threadpool */
 } /* namespace icke2063 */

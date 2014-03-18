@@ -56,6 +56,7 @@
 #ifndef ThreadPool_log_trace
 	#define ThreadPool_log_trace(...)
 #endif
+
 #ifndef ThreadPool_log_debug
 	#define ThreadPool_log_debug(...)
 #endif
@@ -178,12 +179,15 @@ private:
 	virtual void clearDelayedList( void );
 
 	///Implementations for DynamicPoolInt
+	/**
+	 * Scheduler is used for creating and scheduling the WorkerThreads.
+	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
+	 * - on low usage and many created threads -> delete some to save resources
+	 */
 	virtual void handleWorkerCount(void);
 
 
-	///own
-
-
+	///own stuff to get the other stuff running
 
 	///running flag for this threadpool
 	bool m_pool_running;
@@ -211,9 +215,10 @@ private:
 	void stopPoolLoop();
 
 
+	/**
+	 * stop this threadpool
+	 */
 	void stopBasePool();
-
-
 
 	/**
 	 * main thread function
@@ -222,20 +227,12 @@ private:
 	 */
 	void main_thread_func(void);
 
-	/**
-	 * Scheduler is used for creating and scheduling the WorkerThreads.
-	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
-	 * - on low usage and many created threads -> delete some to save resources
-	 */
-
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
 	std::unique_ptr<thread> m_main_thread;
 #else
 	boost::scoped_ptr<thread> m_main_thread;
 #endif
-
-
 
 	///running flag
 	bool m_loop_running;
