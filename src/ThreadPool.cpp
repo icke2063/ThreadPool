@@ -56,6 +56,7 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 	/* init all shared objects with new objects */
 	//m_functor_lock.reset(new mutex()); //init mutex for functor list
 	//m_worker_lock.reset(new mutex()); //init mutex for worker list
+
 	addWorker(); //add at least one worker thread
 
 	while (add_worker_count++ < WORKERTHREAD_MAX
@@ -188,21 +189,21 @@ bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
   if(!addable)return false;
   
   functor_queue_type::iterator queue_it = m_functor_queue.begin();
-  while(queue_it != m_functor_queue.end()){
-    
-    {
-      PrioFunctorInt *queue_item = dynamic_cast<PrioFunctorInt*>(*queue_it);
-      PrioFunctorInt *param_item = dynamic_cast<PrioFunctorInt*>(work);
-      
-      if(queue_item && param_item){
-	if(queue_item->getPriority() < param_item->getPriority()){
-	  m_functor_queue.insert(queue_it, addable);	//insert before
-	  return true;
+	while (queue_it != m_functor_queue.end()) {
+
+		{
+			PrioFunctorInt *queue_item = dynamic_cast<PrioFunctorInt*>(*queue_it);
+			PrioFunctorInt *param_item = dynamic_cast<PrioFunctorInt*>(work);
+
+			if (queue_item && param_item) {
+				if (queue_item->getPriority() < param_item->getPriority()) {
+					m_functor_queue.insert(queue_it, addable); //insert before
+					return true;
+				}
+			}
+		}
+		++queue_it;
 	}
-      }
-    }
-    ++queue_it;
-  }
 
   ThreadPool_log_debug("push it at the end\n");
   // not inserted yet -> push it at the end
@@ -249,7 +250,6 @@ bool ThreadPool::delWorker(void) {
 		delete deleteWorker;
 		return true;
 	}
-
 
 	return false;
 }
