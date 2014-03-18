@@ -48,8 +48,7 @@ namespace threadpool {
 ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 		m_pool_running(true),
 		m_main_sleep_us(DEFAULT_MAIN_SLEEP_US),
-		DynamicPoolInt(
-				worker_count) {
+		DynamicPoolInt(worker_count, worker_count>1?true:false) {
 	int add_worker_count = 0;
 
 	ThreadPool_log_info("ThreadPool[%p]\n", this);
