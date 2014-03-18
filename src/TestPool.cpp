@@ -103,7 +103,19 @@ int main() {
 		sleep(r_loop_wait);
 	}
 
+
+
+
 	pool.reset(NULL);
+
+
+	pool.reset(new ThreadPool());
+
+	tmpFunctor = new Dummy_Functor(10000, true);
+	pool->addFunctor(tmpFunctor);
+
+	pool.reset(NULL);
+
 
 	return 0;
 }
