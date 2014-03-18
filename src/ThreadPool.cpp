@@ -228,6 +228,8 @@ bool ThreadPool::addWorker(void) {
 }
 
 bool ThreadPool::delWorker(void) {
+	WorkerThreadInt *deleteWorker = NULL;
+
 	if (m_pool_running) {
 		lock_guard<mutex> lock(m_worker_lock); // lock before worker access
 		worker_list_type::iterator workerThreads_it = m_workerThreads.begin();
@@ -236,12 +238,19 @@ bool ThreadPool::delWorker(void) {
 
 			if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle) {
 				m_workerThreads.erase(workerThreads_it);
-				delete *workerThreads_it;
-				return true;
+				deleteWorker = *workerThreads_it;
+				break;
 			}
 			++workerThreads_it;
 		}
 	}
+
+	if(deleteWorker){
+		delete deleteWorker;
+		return true;
+	}
+
+
 	return false;
 }
 
@@ -266,16 +275,18 @@ void ThreadPool::clearWorker(void){
 }
 
 void ThreadPool::handleWorkerCount(void) {
+	bool deleteWorker = false;
 
-	// check functor list
-	lock_guard<mutex> lock(m_functor_lock); // lock before queue access
+	{
+		// check functor list
+		lock_guard<mutex> lock(m_functor_lock); // lock before queue access
 
-	ThreadPool_log_trace("m_functor_queue.size(): %d\n", m_functor_queue.size());
-	ThreadPool_log_trace("m_workerThreads.size(): %d\n", m_workerThreads.size());
-	ThreadPool_log_trace("lowWatermark(): %d\n", getLowWatermark());
-	ThreadPool_log_trace("HighWatermark(): %d\n", getHighWatermark());
-	ThreadPool_log_trace("max_queue_size: %i\n", max_queue_size);
-
+		ThreadPool_log_trace("m_functor_queue.size(): %d\n", m_functor_queue.size());
+		ThreadPool_log_trace("m_workerThreads.size(): %d\n", m_workerThreads.size());
+		ThreadPool_log_trace("lowWatermark(): %d\n", getLowWatermark());
+		ThreadPool_log_trace("HighWatermark(): %d\n", getHighWatermark());
+		ThreadPool_log_trace("max_queue_size: %i\n", max_queue_size);
+	}
 	// add needed worker threads
 	while (getWorkerCount() < getLowWatermark()) {
 		//add new worker thread
@@ -287,17 +298,30 @@ void ThreadPool::handleWorkerCount(void) {
 		ThreadPool_log_debug("new worker (under low): %i of %i\n", m_workerThreads.size(), getHighWatermark());
 	}
 
-// add ondemand worker threads
-	if (m_functor_queue.size() > max_queue_size
-			&& getWorkerCount() < getHighWatermark()) {
-		//added new worker thread
-		if (addWorker()) {
-			ThreadPool_log_debug("new worker (ondemand): %i of %i\n", m_workerThreads.size(), getHighWatermark());
+	{
+		lock_guard<mutex> lock(m_functor_lock); // lock before queue access
+
+		// add ondemand worker threads
+		if (m_functor_queue.size() > max_queue_size
+				&& getWorkerCount() < getHighWatermark()) {
+			//added new worker thread
+			if (addWorker()) {
+				ThreadPool_log_debug("new worker (ondemand): %i of %i\n", m_workerThreads.size(), getHighWatermark());
+			}
 		}
 	}
 
-//  try to remove worker threads
-	if (m_functor_queue.size() == 0 && getWorkerCount() > getLowWatermark()) {
+	{
+		lock_guard<mutex> lock(m_functor_lock); // lock before queue access
+		//  try to remove worker threads
+		if (m_functor_queue.size() == 0
+				&& getWorkerCount() > getLowWatermark()) {
+			deleteWorker = true;
+		}
+	}
+
+
+	if(deleteWorker){
 		delWorker();
 	}
 
