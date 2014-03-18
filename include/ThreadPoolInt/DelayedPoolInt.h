@@ -3,9 +3,9 @@
  * @Author icke2063
  * @date   23.11.2013
  * @brief  	Interface for the delayed Threadpool extension
- * 		The idea ist to have a extra list with Functor objects and a deadline timestamp.
+ * 		The idea is to have a extra list with Functor objects and a deadline timestamp.
  * 		If this deadline is over the Functor has to be added to normal Threadpool queue.
- * The function to check the timestamps has to be called continously.
+ * The function to check the timestamps has to be called continuously.
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -31,12 +31,20 @@
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
+  #include <thread>
   #include <mutex>
   using namespace std;
+#else
+	#include <boost/thread/lock_guard.hpp>
+  using namespace boost;
 #endif
 
-
 #include "BasePoolInt.h"
+
+#ifndef DELAYED_FUNCTOR_MAX
+	#define DELAYED_FUNCTOR_MAX	1024
+#endif
+
 
 namespace icke2063 {
 namespace threadpool {
@@ -46,12 +54,16 @@ class DelayedFunctorInt{
  public:
    /**
     * default constructor
-    * - set FunctorInt object
+    * - store FunctorInt object reference
     * - set deadline
     */
-   DelayedFunctorInt(shared_ptr<FunctorInt> functor, struct timeval deadline):
-    m_functor(functor),m_deadline(deadline){}
+   DelayedFunctorInt(FunctorInt *functor, struct timeval *deadline):
+    m_functor(functor),m_deadline(*deadline){}
    
+   /**
+    * -delete Functor
+    */
+   virtual ~DelayedFunctorInt(){}
    
    /**
     * get functor deadline
@@ -61,6 +73,7 @@ class DelayedFunctorInt{
    
    /**
     * set Deadline to current time
+    * - Functor should be activated immediately after this function call
     */
    void resetDeadline(){gettimeofday(&m_deadline,0);}
 
@@ -69,34 +82,40 @@ class DelayedFunctorInt{
    */
   void renewDeadline(struct timeval deadline){m_deadline = deadline;}
 
-
    /**
     * get stored FunctorInt
+    * - no deletion of functor
     */
-   shared_ptr<FunctorInt> getFunctor(){return m_functor;}
- 
- protected:   
-   shared_ptr<FunctorInt> m_functor;
+   virtual FunctorInt *releaseFunctor() = 0;
+
    /**
-    * abslute timestamp after this deadline the functor should be added to threadpool
-    * 
+    * delete stored FunctorInt
+    */
+   virtual void deleteFunctor( void ) = 0;
+
+ protected:   
+   // storage for functor reference
+   FunctorInt *m_functor;
+
+   /**
+    * absolute timestamp after this deadline the functor should be added to threadpool
     */
    struct timeval m_deadline;
 };
 
 class DelayedPoolInt{ 
 public:  
-	DelayedPoolInt();
-	virtual ~DelayedPoolInt(){
-		{
-			// remove all delayed functor objects
-			lock_guard<mutex> lock(*m_delayed_lock.get());
-			m_delayed_queue.clear();
-		}
-	}
+	DelayedPoolInt(){};
 
-	size_t getDQueueCount(){return m_delayed_queue.size();}
+	/**
+	 * - clear delayed list
+	 */
+	virtual ~DelayedPoolInt(){}
 
+	/**
+	 * get current count of queued/delayed functor objects
+	 */
+	size_t getDQueueCount(){ return m_delayed_queue.size(); }
 
 	/**
 	 * 
@@ -109,15 +128,22 @@ public:
 	 * Add new functor object with given deadline
 	 * @param work pointer to functor object
 	 */
-	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
+	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
 
 protected:
-  ///list of delayed functors
-  std::deque<shared_ptr<DelayedFunctorInt> > m_delayed_queue;
 
-  ///lock functor queue
-  unique_ptr<mutex>					m_delayed_lock;
-  
+	/**
+	 *	clear delayed list
+	 */
+	virtual void clearDelayedList( void ) = 0;
+
+	///list of delayed functors
+	typedef std::deque<shared_ptr<DelayedFunctorInt> > delayed_list_type;
+	delayed_list_type m_delayed_queue;
+
+	///lock functor queue
+	mutex					m_delayed_lock;
+
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */

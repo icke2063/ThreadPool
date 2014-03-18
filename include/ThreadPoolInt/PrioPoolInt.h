@@ -33,7 +33,7 @@ namespace threadpool {
 
   
   
-  ///Functor for ThreadPool
+///Priority Functor for ThreadPool
 /**
  * Inherit from this class then it can be added by ThreadPool::addFunctor with an implementation
  * of the ThreadPool class. This class has to implement the functor_function. All member functions and variables
@@ -57,7 +57,6 @@ public:
 	void setPriority(uint8_t prio){m_priority = (prio<=100)?prio:100;}
 	uint8_t getPriority(){return m_priority;}
 	
-	
 private:
   
   /**
@@ -69,13 +68,17 @@ private:
   uint8_t m_priority;
 };
 
-  ///Abstract ThreadPool interface
+///Abstract ThreadPool interface
 class PrioThreadPoolInt {
 
 public:
 	PrioThreadPoolInt(){}
 	virtual ~PrioThreadPoolInt(){}
 	
+	/**
+	 * Add functor object at the correct position of base functor queue.
+	 * MUST be implemented in inherit class (correct usage of locks, threads, ...)
+	 */
 	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work) = 0;
 	
 };

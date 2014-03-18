@@ -26,18 +26,6 @@
 
 #include <sys/time.h>
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <thread>
-  #include <mutex>
-  using namespace std;
-#endif
-
-
-#ifndef WORKERTHREAD_MAX
-	#define WORKERTHREAD_MAX	60
-#endif
-
 namespace icke2063 {
 namespace threadpool {
 
@@ -45,11 +33,15 @@ namespace threadpool {
 class DynamicPoolInt{ 
 public:  
 	DynamicPoolInt(uint8_t worker_count = 1):
-		max_queue_size(1),HighWatermark(1), LowWatermark(1),dynamic_enabled(false)
+		max_queue_size(1),
+		HighWatermark(1),
+		LowWatermark(1),
+		dynamic_enabled(false)
 	{
 		setHighWatermark(worker_count);
 		setLowWatermark(worker_count);
 	}
+
 	virtual ~DynamicPoolInt(){}
 	
 	/**
@@ -95,7 +87,7 @@ protected:
 	 * 	This function is used to create needed WorkerThread objects
 	 * 	and to destroy (really) not needed WorkerThread objects.
 	 * 	MUST be implemented by inherit class
-	 * 	@todo use function pointer instead of abstract function
+	 * 	- this function shall be called continuously
 	 */
 	virtual void handleWorkerCount(void) = 0;
 	long max_queue_size;

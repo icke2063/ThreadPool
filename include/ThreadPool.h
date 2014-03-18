@@ -28,13 +28,15 @@
 
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <chrono>
-  #include <thread>
-  #include <mutex>
-  using namespace std;
+	#include <memory>
+	#include <thread>
+	#include <mutex>
+	using namespace std;
 #else
 	#include <boost/shared_ptr.hpp>
+	#include <boost/scoped_ptr.hpp>
+	#include <boost/thread/mutex.hpp>
+	#include <boost/thread/thread.hpp>
 	#include <boost/thread/lock_guard.hpp>
   using namespace boost;
 #endif
@@ -44,8 +46,16 @@
 #include "ThreadPoolInt/DelayedPoolInt.h"
 #include "ThreadPoolInt/DynamicPoolInt.h"
 #include "ThreadPoolInt/PrioPoolInt.h"
+#include "ThreadPoolInt/Ext_Ref.h"
+
+#ifndef DEFAULT_MAIN_SLEEP_US
+	#define DEFAULT_MAIN_SLEEP_US 1000
+#endif
 
 //logging macros
+#ifndef ThreadPool_log_trace
+	#define ThreadPool_log_trace(...)
+#endif
 #ifndef ThreadPool_log_debug
 	#define ThreadPool_log_debug(...)
 #endif
@@ -61,88 +71,123 @@
 namespace icke2063 {
 namespace threadpool {
 
-/**
- * @class template class for advanced pointer reference object
- * Sometimes it is useful to reference a non shared object(parent) into another object(child).
- * But here is the problem on external deletion of the parent while the child
- * is in queue or while the parent object is in use.
- *
- * So we can use this external reference template (as shared_ptr object ;-)) to store
- * the normal pointer reference and a mutex member variable.
- *
- * The "stored" object (parent) has to reset its pointer reference in its own copy of the parameter object.
- * So all other objects(childs) know that the parent reference is not valid anymore. On each call
- * of the referenced object the caller has to lock the reference (thread safe).
- */
-template <class T>
-class Ext_Ref {
-	mutex m_lock;
-	T *m_ext_ref;
-public:
-	Ext_Ref(T *ext_ref) :
-		m_ext_ref(ext_ref) {}
-
-	Ext_Ref() { setRef(NULL); }
-
-	mutex& getLock(void) { return m_lock; }
-
-	T *getRef(void) { return m_ext_ref; }
-
-	void setRef(T *ext_ref) {
-		lock_guard<mutex> g(m_lock);
-		m_ext_ref = ext_ref;
-	}
-};
-
-/**
- * Interface class for automatic handling of initiating and resetting of reference object
- * As long the parent object is alive, the reference object ("sp_reference") holds the correct
- * reference. This shared object can be provided to other object. But on the destructor call
- * the parent object resets the reference object -> all other child objects will be updated too.
- *
- * This is a little workaround to have sth. like the share_from_this feature, which is only working if
- * the parent object is created as shared object. So you can use pseudo shared pointer reference within
- * non shared objects.
- */
-
-class Ext_Ref_Int{
-public:
-	Ext_Ref_Int(){
-		sp_reference.reset(new Ext_Ref<Ext_Ref_Int>(this));
-	}
-	virtual ~Ext_Ref_Int(){
-		if(sp_reference.get()){
-			sp_reference->setRef(NULL);
-		}
-	}
-protected:
-	shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference;
-};
-
-class Functor:public FunctorInt,
-	      public PrioFunctorInt{  
+class Functor:
+	public FunctorInt,
+	public PrioFunctorInt{
 public:
 	Functor(){};
 	virtual ~Functor(){};
 
 };
 
-class ThreadPool: public BasePoolInt,
-		  public DelayedPoolInt,
-		  public DynamicPoolInt{
+///Implementations for DelayedFunctorInt
+class DelayedFunctor: public DelayedFunctorInt {
 public:
-	ThreadPool(uint8_t worker_count = 1);
+
+	DelayedFunctor(FunctorInt *functor, struct timeval *deadline) :
+			DelayedFunctorInt(functor, deadline) {}
+
+	virtual ~DelayedFunctor(){
+		deleteFunctor();
+	}
+	/**
+	 * get stored FunctorInt
+	 * - lock list
+	 * - no deletion of functor
+	 */
+	virtual FunctorInt *releaseFunctor() {
+		lock_guard<mutex> g(m_lock_functor);
+		FunctorInt *tmpFunctor = m_functor;		//tmp store reference
+		m_functor = NULL;						//reset reference
+		return tmpFunctor;						//return reference
+	}
+
+	/**
+	 * delete stored FunctorInt
+	 * - lock
+	 * - call default function
+	 */
+	virtual void deleteFunctor(void) {
+		lock_guard<mutex> g(m_lock_functor);
+		FunctorInt *tmpFunctor = dynamic_cast<FunctorInt*>(m_functor);		//tmp store reference
+		if(tmpFunctor)delete m_functor;
+		m_functor = NULL;
+	}
+
+private:
+	// lock for reference access
+	mutex m_lock_functor;
+};
+
+
+class ThreadPool:
+	public Ext_Ref_Int,
+	public BasePoolInt,
+	public DelayedPoolInt,
+	public DynamicPoolInt{
+
+	friend class WorkerThread;
+
+/**
+* addFunctor modes
+*
+*/
+#define TPI_ADD_Default	0
+#define TPI_ADD_FiFo	1
+#define TPI_ADD_LiFo	2
+
+public:
+	ThreadPool(uint8_t worker_count = 1, bool auto_start = true);
 	virtual ~ThreadPool();
 
+	 ///Implementations for BasePoolInt
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object
 	 */
-	virtual bool addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default);
-	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
-	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work);
+
+	virtual bool addFunctor(FunctorInt *work, uint8_t add_mode);
+	virtual bool addFunctor(FunctorInt *work){
+		return addFunctor(work, TPI_ADD_Default);
+	}
+	///Implementations for DelayedPoolInt
+	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline);
+
+	///Implementations for PrioPoolInt
+	virtual bool addPrioFunctor(PrioFunctorInt *work);
 private:
-  
+
+	 ///Implementations for BasePoolInt
+	virtual bool addWorker(void);
+	virtual bool delWorker(void);
+	virtual void clearQueue(void);
+	virtual void clearWorker(void);
+
+	///lock functor queue
+	mutex	m_functor_lock;
+
+	///lock worker queue
+	mutex	m_worker_lock;
+
+	///Implementations for DelayedPoolInt
+	virtual void checkDelayedQueue(void);
+
+	/**
+	 *	clear delayed list
+	 */
+	virtual void clearDelayedList( void );
+
+	///Implementations for DynamicPoolInt
+	virtual void handleWorkerCount(void);
+
+
+	///own
+
+
+
+	///running flag for this threadpool
+	bool m_pool_running;
+
   	/* function called before main thread loop */
 	virtual void main_pre(void);
 	/* function called within main thread loop */
@@ -150,12 +195,53 @@ private:
 	/* function called after main thread loop */
 	virtual void main_past(void);
 
-	
-	/* DynamicPoolInt */
-	virtual void handleWorkerCount(void);
-	
-	/* DelayedPoolInt */
-	virtual void checkDelayedQueue(void);
+	/**
+	 * start internal thread
+	 * - creates new thread on first call
+	 * - start lop thread
+	 * - set pool loop running flag
+	 */
+	void startPoolLoop();
+
+	/**
+	 * stop internal thread
+	 * - unset set pool loop running flag
+	 * - no call of main_loop anymore (until startPoolLoop again)
+	 */
+	void stopPoolLoop();
+
+
+	void stopBasePool();
+
+
+
+	/**
+	 * main thread function
+	 * - call main_pre and main_past once
+	 * - continuously calling main_loop while running flag is true
+	 */
+	void main_thread_func(void);
+
+	/**
+	 * Scheduler is used for creating and scheduling the WorkerThreads.
+	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
+	 * - on low usage and many created threads -> delete some to save resources
+	 */
+
+
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+	std::unique_ptr<thread> m_main_thread;
+#else
+	boost::scoped_ptr<thread> m_main_thread;
+#endif
+
+
+
+	///running flag
+	bool m_loop_running;
+
+	/// sleep time between every loop of main thread
+	uint32_t m_main_sleep_us;
 };
 
 } /* namespace threadpool */

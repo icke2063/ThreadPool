@@ -4,7 +4,7 @@
  * @date   31.05.2013
  * @brief  WorkerThreadInt implementation
  *
- * Copyright © 2013 icke2063 <icke2063@gmail.com>
+ * Copyright © 2013,2014 icke2063 <icke2063@gmail.com>
  *
  * This software is free; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,17 +35,100 @@
 namespace icke2063 {
 namespace threadpool {
 
-WorkerThread::WorkerThread(std::deque<shared_ptr<FunctorInt> > *functor_queue, mutex *functor_lock,int *worker_count) :
-		WorkerThreadInt(functor_queue, functor_lock, worker_count) {
+WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
+	m_worker_running(true),
+	m_status(worker_idle),
+	sp_basepool(sp_reference) {
 
-	WorkerThread_log_info("WorkerThread");
+	WorkerThread_log_info("WorkerThread[%p] \n", this);
 
+	// create new worker thread
+	try {
+		m_worker_thread.reset(new thread(&WorkerThread::worker_function, this));
+	} catch (std::exception e) {
+		WorkerThread_log_error("WorkerThread: init failure: %s\n",e.what());
+		throw e;
+	}
 }
 
 WorkerThread::~WorkerThread() {
-WorkerThread_log_info("WorkerThread");
+	uint16_t w_count = 0;
+
+	WorkerThread_log_info("~WorkerThread[%p]\n", this);
+
+	m_worker_running = false; //disable worker thread
+
+	/**
+	 * wait for ending worker thread function
+	 * @todo how to kill blocked thread function?
+	 */
+	while (m_status != worker_finished && w_count++ < 1000) {
+		WorkerThread_log_trace("~wait for finish worker[%p]: %d\n", this, w_count);
+		usleep(1000);
+	}
+
+//at this point the worker thread should have ended -> join it
+	if (m_status == worker_finished && m_worker_thread.get()
+			&& m_worker_thread->joinable()) {
+		m_worker_thread->join();
+	} else {
+		// kill thread function !!! but how ?
+	}
+	WorkerThread_log_debug("~~WorkerThread[%p]", this);
+
 }
 
+void WorkerThread::worker_function(void) {
+	FunctorInt *curFunctor = NULL;
+	while (m_worker_running) {
+		{
+			curFunctor = NULL;
+			this_thread::yield();
+			//this_thread::sleep_for(chrono::microseconds(1000));
+			if (!m_worker_running){
+				break;
+			}
+
+			if (sp_basepool.get()) {
+				lock_guard<mutex> g(sp_basepool->getLock());
+				ThreadPool *p_base = dynamic_cast<ThreadPool*>(sp_basepool->getRef());
+
+				if (p_base) { //parent object valid
+					lock_guard<mutex> lock(p_base->m_functor_lock); // lock before queue access
+					if (!m_worker_running){
+						break;
+					}
+
+					if (p_base->m_functor_queue.size() > 0) {
+						curFunctor = p_base->m_functor_queue.front(); // get next functor from queue
+						p_base->m_functor_queue.pop_front(); // remove functor from queue
+					}
+
+				} else {
+					break;
+				}
+			}
+
+			if (curFunctor != NULL) {
+				//logger->debug("get next functor");
+				m_status = worker_running; //
+				WorkerThread_log_trace("curFunctor[%p]->functor_function();\n", curFunctor);
+				curFunctor->functor_function(); // call handling function
+				delete curFunctor;	//delete object
+				m_status = worker_idle; //
+			} else {
+				usleep(100);
+				m_status = worker_idle; //
+			}
+		}
+	}
+
+finish:
+	WorkerThread_log_debug("exit worker_function[%p]\n", this);
+	m_status = worker_finished;
+	return; //running mode changed -> exit thread
+
+}
 
 
 } /* namespace common_cpp */
