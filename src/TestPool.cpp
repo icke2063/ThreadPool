@@ -38,10 +38,10 @@ int main() {
 	 else the current threat will be finished */
 
 	//pool.addFunctor(new Dummy_Functor());
-
+#ifndef NO_DYNAMIC_TP_SUPPORT
 	pool->setDynEnable(true);
 	pool->setHighWatermark(10);
-
+#endif
 
 	srand(time(NULL));
 
@@ -77,14 +77,15 @@ int main() {
 			gettimeofday(&timestamp, NULL);
 
 			tmpFunctor = new Dummy_Functor(r_wait, true);
+#ifndef NO_PRIORITY_TP_SUPPORT
 			tmpFunctor->setPriority(r_prio);
-
+#endif
 			if (r_type <= 49) {
 
 				tmpFunctor->printTimestamp(&timestamp);
 				if(!pool->addFunctor(tmpFunctor))printf("\n!!! failure on adding functor\n");
 			} else {
-
+#ifndef NO_DELAYED_TP_SUPPORT
 				// loop waiting time after adding 0..99 ms
 				r_delay = rand() % 100;
 
@@ -93,18 +94,20 @@ int main() {
 
 				tmpFunctor->printTimestamp(&timestamp);
 				pool->addDelayedFunctor(tmpFunctor, &deadline);
+#endif
 			}
 		}
 
-		printf("Pool Info:\nQueue count: %d DQueue count: %d Worker Count: %d\n\n",
-				pool->getQueueCount(),pool->getDQueueCount(), pool->getWorkerCount());
+		printf("Pool Info:\n");
+		printf("Queue count: %d\n",pool->getQueueCount());
+#ifndef NO_DELAYED_TP_SUPPORT
+		printf("DQueue count: %d\n",pool->getDQueueCount());
+#endif
+		printf("Worker Count: %d\n",pool->getWorkerCount());
 
 
 		sleep(r_loop_wait);
 	}
-
-
-
 
 	pool.reset(NULL);
 
@@ -113,6 +116,8 @@ int main() {
 
 	tmpFunctor = new Dummy_Functor(10000, true);
 	pool->addFunctor(tmpFunctor);
+
+	usleep(100);
 
 	pool.reset(NULL);
 

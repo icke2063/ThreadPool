@@ -46,12 +46,16 @@ namespace icke2063 {
 namespace threadpool {
 
 ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
-		m_pool_running(true),
-		m_main_sleep_us(DEFAULT_MAIN_SLEEP_US),
-		DynamicPoolInt(worker_count, worker_count>1?true:false) {
+#ifndef NO_DYNAMIC_TP_SUPPORT
+		DynamicPoolInt(worker_count, worker_count>1?true:false)
+#endif
+		,m_pool_running(true)
+		,m_main_sleep_us(DEFAULT_MAIN_SLEEP_US)
+
+{
 	int add_worker_count = 0;
 
-	ThreadPool_log_info("ThreadPool[%p]\n", this);
+	ThreadPool_log_info("ThreadPool[%p]\n", (void*)this);
 
 	/* init all shared objects with new objects */
 	//m_functor_lock.reset(new mutex()); //init mutex for functor list
@@ -72,7 +76,7 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 }
 
 ThreadPool::~ThreadPool() {
-	ThreadPool_log_info("~ThreadPool[%p]\n", this);
+	ThreadPool_log_info("~ThreadPool[%p]\n", (void*)this);
 	m_pool_running = false; //disable ThreadPool
 
 	if (m_main_thread.get() && m_main_thread->joinable()) {
@@ -80,14 +84,16 @@ ThreadPool::~ThreadPool() {
 	}
 	m_main_thread.reset();
 
+#ifndef NO_DELAYED_TP_SUPPORT
 	///DelayedPoolInt
 	clearDelayedList();
+#endif
 
 	///BasePoolInt
 	clearQueue();
 	clearWorker();
 
-	ThreadPool_log_info("~~ThreadPool[%p]", this);
+	ThreadPool_log_info("~~ThreadPool[%p]", (void*)this);
 }
 
 
@@ -96,7 +102,7 @@ void ThreadPool::startPoolLoop() {
 		m_loop_running = true;
 		if (m_main_thread.get() == NULL) {
 			try {
-				ThreadPool_log_debug("new main thread[%p]\n", this);
+				ThreadPool_log_debug("new main thread[%p]\n", (void*)this);
 				m_main_thread.reset(new thread(&ThreadPool::main_thread_func, this)); // create new main thread_function
 			} catch (std::exception e) {
 				ThreadPool_log_error("init main_thread failure: %s", e.what());
@@ -128,22 +134,25 @@ void ThreadPool::main_pre(void){
 }
 
 void ThreadPool::main_loop(void) {
-
+#ifndef NO_DYNAMIC_TP_SUPPORT
 	if (isDynEnabled()) {
 		/* dynamic worker handling enabled -> handle current worker count */
 		handleWorkerCount();
 	}
+#endif
+#ifndef NO_DELAYED_TP_SUPPORT
 	checkDelayedQueue();
+#endif
 }
 
 void ThreadPool::main_past(void){
 }
-
+#ifndef NO_PRIORITY_TP_SUPPORT
 ///advanced implemenatation of default function
 bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 
 	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
-		ThreadPool_log_debug("add Functor #%i\n", m_functor_queue.size() + 1);
+		ThreadPool_log_debug("add Functor #%i\n", (int)m_functor_queue.size() + 1);
 		Functor *tmp_functor = dynamic_cast<Functor*>(work);
 		if (!tmp_functor)
 			return false;
@@ -172,15 +181,21 @@ bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 	}
 
 
-	ThreadPool_log_error("failure add Functor #%i\n", m_functor_queue.size() + 1);
+	ThreadPool_log_error("failure add Functor #%i\n", (int)m_functor_queue.size() + 1);
 	delete work;	//delete not added functor object
 
 	return false;
 }
+#else
+bool ThreadPool::addFunctor(FunctorInt *work) {
+	lock_guard<mutex> lock(m_functor_lock);
+	m_functor_queue.push_back(work);
+}
+#endif
 
-
+#ifndef NO_PRIORITY_TP_SUPPORT
 bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
-  ThreadPool_log_debug("add priority Functor #%i\n", m_functor_queue.size() + 1);
+  ThreadPool_log_debug("add priority Functor #%i\n", (int)m_functor_queue.size() + 1);
  
   lock_guard<mutex> lock(m_functor_lock);	//lock functor list
   
@@ -211,10 +226,11 @@ bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
   
   return true;
   }
+#endif
 
 bool ThreadPool::addWorker(void) {
 	if (m_pool_running && m_workerThreads.size() < WORKERTHREAD_MAX) {
-		ThreadPool_log_debug("addworker[%p] #%d\n", this, m_workerThreads.size() +1);
+		ThreadPool_log_debug("addworker[%p] #%d\n", (void*)this, (int)m_workerThreads.size() +1);
 		lock_guard<mutex> lock(m_worker_lock); // lock before worker list access
 		try {
 			WorkerThreadInt *newWorker = new WorkerThread(sp_reference);
@@ -278,7 +294,7 @@ void ThreadPool::clearWorker(void){
 		worker_it = m_workerThreads.erase(worker_it);
 	}
 }
-
+#ifndef NO_DYNAMIC_TP_SUPPORT
 void ThreadPool::handleWorkerCount(void) {
 	bool deleteWorker = false;
 
@@ -300,7 +316,7 @@ void ThreadPool::handleWorkerCount(void) {
 			//adding not successful -> exit loop
 			break;
 		}
-		ThreadPool_log_debug("new worker (under low): %i of %i\n", m_workerThreads.size(), getHighWatermark());
+		ThreadPool_log_debug("new worker (under low): %i of %i\n", (int)m_workerThreads.size(), (int)getHighWatermark());
 	}
 
 	{
@@ -311,7 +327,7 @@ void ThreadPool::handleWorkerCount(void) {
 				&& getWorkerCount() < getHighWatermark()) {
 			//added new worker thread
 			if (addWorker()) {
-				ThreadPool_log_debug("new worker (ondemand): %i of %i\n", m_workerThreads.size(), getHighWatermark());
+				ThreadPool_log_debug("new worker (ondemand): %i of %i\n", (int)m_workerThreads.size(), (int)getHighWatermark());
 			}
 		}
 	}
@@ -332,9 +348,9 @@ void ThreadPool::handleWorkerCount(void) {
 
 	max_queue_size = (1 << getWorkerCount()); //calc new maximum waiting functor count
 }
+#endif
 
-
-
+#ifndef NO_DELAYED_TP_SUPPORT
 void ThreadPool::checkDelayedQueue(void){
 	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
 	  
@@ -342,7 +358,7 @@ void ThreadPool::checkDelayedQueue(void){
 	  
 	  ThreadPool_log_trace("m_delayed_queue.size():%d\n",m_delayed_queue.size());
 	  
-	  struct timeval timediff, tnow;
+	  struct timeval tnow;
 	  if( gettimeofday(&tnow, 0) != 0){
 	     return;
 	  }
@@ -385,9 +401,10 @@ shared_ptr<DelayedFunctorInt> ThreadPool::addDelayedFunctor(FunctorInt *work, st
 
 	}
 
-	ThreadPool_log_error("failure add DelayedFunctor #%i", m_delayed_queue.size() + 1);
+	ThreadPool_log_error("failure add DelayedFunctor #%d", (int)m_delayed_queue.size() + 1);
 	return tmp_functor;
 }
+#endif
 
 } /* namespace common_cpp */
 } /* namespace icke2063 */

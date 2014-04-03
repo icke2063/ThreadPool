@@ -27,6 +27,8 @@
 #ifndef _DELAYED_THREADPOOL_H_
 #define _DELAYED_THREADPOOL_H_
 
+#ifndef NO_DELAYED_TP_SUPPORT
+
 #include <sys/time.h>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
@@ -35,7 +37,8 @@
   #include <mutex>
   using namespace std;
 #else
-	#include <boost/thread/lock_guard.hpp>
+	#include <boost/thread/mutex.hpp>
+	#include <boost/shared_ptr.hpp>
   using namespace boost;
 #endif
 
@@ -147,4 +150,6 @@ protected:
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */
+
+#endif /* _DELAYED_TP_SUPPORT */
 #endif /* _DELAYED_THREADPOOL_H_ */

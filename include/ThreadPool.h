@@ -43,8 +43,12 @@
 
 //common_cpp
 #include "ThreadPoolInt/BasePoolInt.h"
-#include "ThreadPoolInt/DelayedPoolInt.h"
-#include "ThreadPoolInt/DynamicPoolInt.h"
+#ifndef NO_DELAYED_TP_SUPPORT
+	#include "ThreadPoolInt/DelayedPoolInt.h"
+#endif
+#ifndef NO_DYNAMIC_TP_SUPPORT
+	#include "ThreadPoolInt/DynamicPoolInt.h"
+#endif
 #include "ThreadPoolInt/PrioPoolInt.h"
 #include "ThreadPoolInt/Ext_Ref.h"
 
@@ -73,14 +77,18 @@ namespace icke2063 {
 namespace threadpool {
 
 class Functor:
-	public FunctorInt,
-	public PrioFunctorInt{
+	public FunctorInt
+#ifndef NO_PRIORITY_TP_SUPPORT
+	,public PrioFunctorInt
+#endif
+	{
 public:
 	Functor(){};
 	virtual ~Functor(){};
 
 };
 
+#ifndef NO_DELAYED_TP_SUPPORT
 ///Implementations for DelayedFunctorInt
 class DelayedFunctor: public DelayedFunctorInt {
 public:
@@ -119,13 +127,18 @@ private:
 	// lock for reference access
 	mutex m_lock_functor;
 };
-
+#endif
 
 class ThreadPool:
-	public Ext_Ref_Int,
-	public BasePoolInt,
-	public DelayedPoolInt,
-	public DynamicPoolInt{
+	public Ext_Ref_Int
+	,public BasePoolInt
+#ifndef NO_DELAYED_TP_SUPPORT
+	,public DelayedPoolInt
+#endif
+#ifndef NO_DYNAMIC_TP_SUPPORT
+	,public DynamicPoolInt
+#endif
+	{
 
 	friend class WorkerThread;
 
@@ -146,16 +159,23 @@ public:
 	 * Add new functor object
 	 * @param work pointer to functor object
 	 */
-
+#ifndef NO_PRIORITY_TP_SUPPORT
 	virtual bool addFunctor(FunctorInt *work, uint8_t add_mode);
+
 	virtual bool addFunctor(FunctorInt *work){
 		return addFunctor(work, TPI_ADD_Default);
 	}
+#else
+	virtual bool addFunctor(FunctorInt *work);
+#endif
+#ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
 	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline);
-
+#endif
+#ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt
 	virtual bool addPrioFunctor(PrioFunctorInt *work);
+#endif
 private:
 
 	 ///Implementations for BasePoolInt
@@ -169,6 +189,7 @@ private:
 
 	///lock worker queue
 	mutex	m_worker_lock;
+#ifndef NO_DELAYED_TP_SUPPORT
 
 	///Implementations for DelayedPoolInt
 	virtual void checkDelayedQueue(void);
@@ -177,7 +198,8 @@ private:
 	 *	clear delayed list
 	 */
 	virtual void clearDelayedList( void );
-
+#endif
+#ifndef NO_DYNAMIC_TP_SUPPORT
 	///Implementations for DynamicPoolInt
 	/**
 	 * Scheduler is used for creating and scheduling the WorkerThreads.
@@ -185,7 +207,7 @@ private:
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
 	virtual void handleWorkerCount(void);
-
+#endif
 
 	///own stuff to get the other stuff running
 

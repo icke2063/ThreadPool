@@ -36,16 +36,16 @@ namespace icke2063 {
 namespace threadpool {
 
 WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
+	m_status(worker_idle),
 	m_worker_running(true),
 	m_fast_shutdown(false),
-	m_status(worker_idle),
 	sp_basepool(sp_reference) {
 
-	WorkerThread_log_info("WorkerThread[%p] \n", this);
+	WorkerThread_log_info("WorkerThread[%p] \n", (void*)this);
 
 	// create new worker thread
 	try {
-		m_worker_thread.reset(new thread(&WorkerThread::worker_function, this));
+		m_worker_thread.reset(new thread(&WorkerThread::worker_function,this));
 	} catch (std::exception e) {
 		WorkerThread_log_error("WorkerThread: init failure: %s\n",e.what());
 		throw e;
@@ -55,7 +55,7 @@ WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference):
 WorkerThread::~WorkerThread() {
 
 	int wait_count=0;
-	WorkerThread_log_info("~WorkerThread[%p]\n", this);
+	WorkerThread_log_info("~WorkerThread[%p]\n", (void*)this);
 
 	m_worker_running = false; //disable worker thread
 
@@ -75,10 +75,10 @@ WorkerThread::~WorkerThread() {
 			m_worker_thread->join();
 		}
 	} else {
-		WorkerThread_log_error("Reset unfinished thread[%p]\n", this);
+		WorkerThread_log_error("Reset unfinished thread[%p]\n", (void*)this);
 		m_worker_thread.reset(NULL);
 	}
-	WorkerThread_log_debug("~~WorkerThread[%p]\n", this);
+	WorkerThread_log_debug("~~WorkerThread[%p]\n", (void*)this);
 
 }
 
@@ -127,8 +127,7 @@ void WorkerThread::worker_function(void) {
 		}
 	}
 
-finish:
-	WorkerThread_log_debug("exit worker_function[%p]\n", this);
+	WorkerThread_log_debug("exit worker_function[%p]\n", (void*)this);
 	m_status = worker_finished;
 	return; //running mode changed -> exit thread
 

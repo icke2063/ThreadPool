@@ -23,7 +23,7 @@
 
 #ifndef _PRIOPOOLINT__
 #define _PRIOPOOLINT__
-//#include "ThreadPoolInt.h"
+#ifndef NO_PRIORITY_TP_SUPPORT
 
 #include <stdint.h>
 #include<stdio.h>
@@ -86,4 +86,6 @@ public:
 
 } /* namespace common_cpp */
 } /* namespace icke2063 */
+
+#endif
 #endif /* _PRIOPOOLINT__ */

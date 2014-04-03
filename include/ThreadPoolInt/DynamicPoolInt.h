@@ -24,7 +24,10 @@
 #ifndef _DYNAMIC_THREADPOOL_H_
 #define _DYNAMIC_THREADPOOL_H_
 
+#ifndef NO_DYNAMIC_TP_SUPPORT
+
 #include <sys/time.h>
+#include <stddef.h>
 
 namespace icke2063 {
 namespace threadpool {
@@ -34,8 +37,8 @@ class DynamicPoolInt{
 public:  
 	DynamicPoolInt(uint8_t worker_count = 1, bool dyn_enable = false):
 		max_queue_size(1),
-		HighWatermark(1),
 		LowWatermark(1),
+		HighWatermark(1),
 		dynamic_enabled(dyn_enable)
 	{
 		setHighWatermark(worker_count);
@@ -90,7 +93,7 @@ protected:
 	 * 	- this function shall be called continuously
 	 */
 	virtual void handleWorkerCount(void) = 0;
-	long max_queue_size;
+	size_t max_queue_size;
 protected:
   	uint16_t LowWatermark;		//low count of worker threads
 	uint16_t HighWatermark;		//high count of worker threads
@@ -98,4 +101,6 @@ protected:
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */
+
+#endif
 #endif /* _DYNAMIC_THREADPOOL_H_ */
