@@ -99,11 +99,11 @@ int main() {
 		}
 
 		printf("Pool Info:\n");
-		printf("Queue count: %d\n",pool->getQueueCount());
+		printf("Queue count: %d\n",(int)pool->getQueueCount());
 #ifndef NO_DELAYED_TP_SUPPORT
-		printf("DQueue count: %d\n",pool->getDQueueCount());
+		printf("DQueue count: %d\n",(int)pool->getDQueueCount());
 #endif
-		printf("Worker Count: %d\n",pool->getWorkerCount());
+		printf("Worker Count: %d\n",(int)pool->getWorkerCount());
 
 
 		sleep(r_loop_wait);
