@@ -62,14 +62,16 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 	//m_functor_lock.reset(new mutex()); //init mutex for functor list
 	//m_worker_lock.reset(new mutex()); //init mutex for worker list
 
-	if(addWorker()){
-		//add at least one worker thread failed -> threadpool not usable -> throw exception
-		throw std::runtime_error("icke2063::ThreadPool: Cannot create Worker\n");
-	}
+	addWorker(); //add at least one worker thread failed -> threadpool not usable -> throw exception
+
 
 	while (add_worker_count++ < WORKERTHREAD_MAX
 			&& m_workerThreads.size() < worker_count) {
 		if(!addWorker())break;	// break on failure
+	}
+
+	if(m_workerThreads.size() < 1){
+		throw std::runtime_error("icke2063::ThreadPool: Cannot create Worker\n");
 	}
 
 	// auto start pool loop
