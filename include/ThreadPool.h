@@ -176,7 +176,7 @@ public:
 	///Implementations for PrioPoolInt
 	virtual bool addPrioFunctor(PrioFunctorInt *work);
 #endif
-private:
+protected:
 
 	 ///Implementations for BasePoolInt
 	virtual bool addWorker(void);
