@@ -27,6 +27,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <stdexcept>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
@@ -63,7 +64,7 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 
 	if(addWorker()){
 		//add at least one worker thread failed -> threadpool not usable -> throw exception
-		throw "icke2063::ThreadPool: Cannot create Worker\n";
+		throw std::runtime_error("icke2063::ThreadPool: Cannot create Worker\n");
 	}
 
 	while (add_worker_count++ < WORKERTHREAD_MAX
