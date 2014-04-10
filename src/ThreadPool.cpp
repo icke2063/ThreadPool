@@ -61,7 +61,10 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 	//m_functor_lock.reset(new mutex()); //init mutex for functor list
 	//m_worker_lock.reset(new mutex()); //init mutex for worker list
 
-	addWorker(); //add at least one worker thread
+	if(addWorker()){
+		//add at least one worker thread failed -> threadpool not usable -> throw exception
+		throw "icke2063::ThreadPool: Cannot create Worker\n";
+	}
 
 	while (add_worker_count++ < WORKERTHREAD_MAX
 			&& m_workerThreads.size() < worker_count) {
