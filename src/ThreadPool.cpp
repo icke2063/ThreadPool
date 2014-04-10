@@ -100,7 +100,7 @@ ThreadPool::~ThreadPool() {
 }
 
 
-void ThreadPool::startPoolLoop() {
+bool ThreadPool::startPoolLoop() {
 	if(m_pool_running){
 		m_loop_running = true;
 		if (m_main_thread.get() == NULL) {
@@ -109,10 +109,12 @@ void ThreadPool::startPoolLoop() {
 				m_main_thread.reset(new thread(&ThreadPool::main_thread_func, this)); // create new main thread_function
 			} catch (std::exception e) {
 				ThreadPool_log_error("init main_thread failure: %s", e.what());
-
+				m_loop_running = false;
+				return false;
 			}
 		}
 	}
+	return true;
 }
 
 void ThreadPool::stopPoolLoop() {

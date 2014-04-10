@@ -227,7 +227,7 @@ protected:
 	 * - start lop thread
 	 * - set pool loop running flag
 	 */
-	void startPoolLoop();
+	bool startPoolLoop();
 
 	/**
 	 * stop internal thread
