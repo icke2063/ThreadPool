@@ -12,6 +12,7 @@
 
 #include <ThreadPool.h>
 #include <sys/time.h>
+#include <stdint.h>
 
 using namespace icke2063::threadpool;
 

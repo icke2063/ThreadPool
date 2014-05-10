@@ -28,6 +28,7 @@
 
 #include <sys/time.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace icke2063 {
 namespace threadpool {

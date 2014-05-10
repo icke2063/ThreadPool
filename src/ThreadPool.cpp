@@ -110,7 +110,7 @@ bool ThreadPool::startPoolLoop() {
 			try {
 				ThreadPool_log_debug("new main thread[%p]\n", (void*)this);
 				m_main_thread.reset(new thread(&ThreadPool::main_thread_func, this)); // create new main thread_function
-			} catch (std::exception e) {
+			} catch (std::exception& e) {
 				ThreadPool_log_error("init main_thread failure: %s", e.what());
 				m_loop_running = false;
 				return false;
@@ -243,7 +243,7 @@ bool ThreadPool::addWorker(void) {
 		try {
 			WorkerThreadInt *newWorker = new WorkerThread(sp_reference);
 			m_workerThreads.push_back(newWorker);
-		} catch (std::exception e) {;
+		} catch (std::exception& e) {;
 			ThreadPool_log_error("addworker: failure: %s\n",e.what());
 			return false;
 		}

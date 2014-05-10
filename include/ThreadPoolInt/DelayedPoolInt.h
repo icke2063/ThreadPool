@@ -33,7 +33,6 @@
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
-  #include <thread>
   #include <mutex>
   using namespace std;
 #else

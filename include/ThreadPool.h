@@ -37,7 +37,7 @@
 	#include <boost/scoped_ptr.hpp>
 	#include <boost/thread/mutex.hpp>
 	#include <boost/thread/thread.hpp>
-	#include <boost/thread/lock_guard.hpp>
+	#include <boost/thread/locks.hpp>
   using namespace boost;
 #endif
 

@@ -26,7 +26,7 @@
 #ifndef NO_PRIORITY_TP_SUPPORT
 
 #include <stdint.h>
-#include<stdio.h>
+#include <stdio.h>
 
 namespace icke2063 {
 namespace threadpool {
