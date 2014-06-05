@@ -29,16 +29,6 @@
 #include <string>
 #include <stdexcept>
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <chrono>
-  #include <thread>
-  using namespace std;
-#endif
-
-
-#include <boost/concept_check.hpp>
-
 //common_cpp
 #include "../include/ThreadPool.h"
 #include "../include/WorkerThread.h"
