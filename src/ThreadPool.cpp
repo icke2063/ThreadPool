@@ -38,9 +38,9 @@ namespace threadpool {
 
 ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 #ifndef NO_DYNAMIC_TP_SUPPORT
-		DynamicPoolInt(worker_count, worker_count>1?true:false)
+		DynamicPoolInt(worker_count, worker_count>1?true:false),
 #endif
-		,m_pool_running(true)
+		m_pool_running(true)
 		,m_main_sleep_us(DEFAULT_MAIN_SLEEP_US)
 
 {
