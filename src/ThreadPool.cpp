@@ -397,9 +397,16 @@ void ThreadPool::checkDelayedQueue(void){
 	    msec+=(tnow.tv_usec-(*delayed_it)->getDeadline().tv_usec)/1000;	    
 	    
 	    if(msec >= 0){
-	      // add current functor to queue & remove from delayed queue
-	      addFunctor((*delayed_it)->releaseFunctor());
-	      delayed_it = m_delayed_queue.erase(delayed_it);
+
+	    	//get functor reference and remove from list
+	    	FunctorInt* p_tmp_Functor = (*delayed_it)->releaseFunctor();
+	    	delayed_it = m_delayed_queue.erase(delayed_it);
+
+	      // add current functor to queue
+	      if(!addFunctor(p_tmp_Functor)){
+	    	  //adding not successful -> readd to front of delayed list
+	    	  m_delayed_queue.push_front(shared_ptr<DelayedFunctorInt>(new DelayedFunctor(p_tmp_Functor, &tnow)));
+	      }
 	      continue;
 	    }
 	    ++delayed_it;
