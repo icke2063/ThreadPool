@@ -201,6 +201,24 @@ bool ThreadPool::addFunctor(FunctorInt *work) {
 }
 #endif
 
+int ThreadPool::getQueuePos(FunctorInt *searchedFunctor) {
+	int pos = -1;
+	lock_guard<mutex> lock(m_functor_lock); //lock functor list
+
+	functor_queue_type::iterator queue_it = m_functor_queue.begin();
+	while (queue_it != m_functor_queue.end()) {
+		pos++;	//raise
+		if (*queue_it == searchedFunctor) {
+			//found matching reference -> exit function
+			return pos;
+		}
+		++queue_it;
+	}
+
+	return -1;
+}
+
+
 #ifndef NO_PRIORITY_TP_SUPPORT
 bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
   ThreadPool_log_debug("add priority Functor #%i\n", (int)m_functor_queue.size() + 1);

@@ -168,6 +168,12 @@ public:
 #else
 	virtual bool addFunctor(FunctorInt *work);
 #endif
+
+	/**
+	 * get queue position of given Functor reference
+	 */
+	virtual int getQueuePos(FunctorInt *searchedFunctor);
+
 #ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
 	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline);
