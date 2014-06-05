@@ -33,7 +33,7 @@
   using namespace std;
 #else
 	#include <boost/shared_ptr.hpp>
-	#include <boost/thread/lock_guard.hpp>
+	#include <boost/thread/locks.hpp>
   using namespace boost;
 #endif
 
