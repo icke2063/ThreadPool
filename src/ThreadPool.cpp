@@ -187,6 +187,7 @@ bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 bool ThreadPool::addFunctor(FunctorInt *work) {
 	lock_guard<mutex> lock(m_functor_lock);
 	m_functor_queue.push_back(work);
+	return true;
 }
 #endif
 
