@@ -180,7 +180,6 @@ bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 
 
 	ThreadPool_log_error("failure add Functor #%i\n", (int)m_functor_queue.size() + 1);
-	delete work;	//delete not added functor object
 
 	return false;
 }

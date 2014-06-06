@@ -122,7 +122,10 @@ public:
 	  * Add new functor to queue
 	  * - lock list before access list items
 	  * - add functor object to list
+	  *
 	  * @param work:	pointer to FunctorInt Object (will be deleted after use)
+	  * @return if true threadpool manage the functor object (delete after usage), else
+	  * 		no deletion of object -> calling instance has still to manage object
 	  */
 	virtual bool addFunctor(FunctorInt *work) = 0;
 
