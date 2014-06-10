@@ -31,14 +31,23 @@
 	#include <memory>
 	#include <thread>
 	#include <mutex>
-	using namespace std;
+	using std::mutex;
+	using std::lock_guard;
+	using std::shared_ptr;
+	using std::unique_ptr;
+	using std::thread;
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/scoped_ptr.hpp>
 	#include <boost/thread/mutex.hpp>
 	#include <boost/thread/thread.hpp>
 	#include <boost/thread/locks.hpp>
-  using namespace boost;
+
+	using boost::mutex;
+	using boost::lock_guard;
+	using boost::shared_ptr;
+	using boost::scoped_ptr;
+	using boost::thread;
 #endif
 
 //common_cpp
@@ -260,9 +269,9 @@ protected:
 
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-	std::unique_ptr<thread> m_main_thread;
+	unique_ptr<thread> m_main_thread;
 #else
-	boost::scoped_ptr<thread> m_main_thread;
+	scoped_ptr<thread> m_main_thread;
 #endif
 
 	///running flag

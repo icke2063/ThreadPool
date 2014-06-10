@@ -28,13 +28,14 @@
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
-  #include <thread>
   #include <mutex>
-  using namespace std;
+  using std::shared_ptr;
+  using std::mutex;
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/thread/locks.hpp>
-  using namespace boost;
+  using boost::shared_ptr;
+  using boost::mutex;
 #endif
 
 namespace icke2063 {

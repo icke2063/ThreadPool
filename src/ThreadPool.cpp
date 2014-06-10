@@ -33,6 +33,12 @@
 #include "../include/ThreadPool.h"
 #include "../include/WorkerThread.h"
 
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+	using namespace std;
+#else
+	using namespace boost;
+#endif
+
 namespace icke2063 {
 namespace threadpool {
 

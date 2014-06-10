@@ -22,11 +22,8 @@
  */
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <chrono>
   using namespace std;
 #else
-  #include <boost/shared_ptr.hpp>
   using namespace boost;
 #endif
 

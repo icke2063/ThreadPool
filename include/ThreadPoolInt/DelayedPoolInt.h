@@ -34,11 +34,13 @@
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   #include <memory>
   #include <mutex>
-  using namespace std;
+using std::shared_ptr;
+using std::mutex;
 #else
 	#include <boost/thread/mutex.hpp>
 	#include <boost/shared_ptr.hpp>
-  using namespace boost;
+using boost::shared_ptr;
+using boost::mutex;
 #endif
 
 #include "BasePoolInt.h"

@@ -25,14 +25,18 @@
 #define WORKERTHREAD_H_
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <thread>
-  using namespace std;
+	#include <memory>
+	#include <thread>
+	using std::unique_ptr;
+	using std::shared_ptr;
+	using std::thread;
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/scoped_ptr.hpp>
 	#include <boost/thread.hpp>
-  using namespace boost;
+	using boost::scoped_ptr;
+	using boost::shared_ptr;
+	using boost::thread;
 #endif
 
 
