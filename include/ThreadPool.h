@@ -138,6 +138,9 @@ class ThreadPool:
 #ifndef NO_DYNAMIC_TP_SUPPORT
 	,public DynamicPoolInt
 #endif
+#ifndef NO_PRIORITY_TP_SUPPORT
+	,public PrioThreadPoolInt
+#endif
 	{
 
 	friend class WorkerThread;
