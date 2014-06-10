@@ -114,7 +114,12 @@ void WorkerThread::worker_function(void) {
 				//logger->debug("get next functor");
 				m_status = worker_running; //
 				WorkerThread_log_trace("curFunctor[%p]->functor_function();\n", curFunctor);
-				curFunctor->functor_function(); // call handling function
+				try {
+					curFunctor->functor_function(); // call handling function
+				}
+				catch (...) {
+					WorkerThread_log_error("Exception in functor_function();\n");
+				}
 				delete curFunctor;	//delete object
 				m_status = worker_idle; //
 			} else {
