@@ -83,7 +83,10 @@ int main() {
 			if (r_type <= 49) {
 
 				tmpFunctor->printTimestamp(&timestamp);
-				if(!pool->addFunctor(tmpFunctor))printf("\n!!! failure on adding functor\n");
+				if(pool->delegateFunctor(tmpFunctor) != NULL){
+					printf("\n!!! failure on adding functor\n");
+					delete tmpFunctor;
+				}
 			} else {
 #ifndef NO_DELAYED_TP_SUPPORT
 				// loop waiting time after adding 0..99 ms
@@ -115,7 +118,9 @@ int main() {
 	pool.reset(new ThreadPool());
 
 	tmpFunctor = new Dummy_Functor(10000, true);
-	pool->addFunctor(tmpFunctor);
+	if(pool->delegateFunctor(tmpFunctor) != NULL){
+		delete tmpFunctor;
+	}
 
 	usleep(100);
 

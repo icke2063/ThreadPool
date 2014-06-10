@@ -30,6 +30,8 @@
 	using std::unique_ptr;
 	using std::shared_ptr;
 	using std::thread;
+
+	#define OVERRIDE override
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/scoped_ptr.hpp>
@@ -37,6 +39,8 @@
 	using boost::scoped_ptr;
 	using boost::shared_ptr;
 	using boost::thread;
+
+	#define OVERRIDE
 #endif
 
 
@@ -96,7 +100,7 @@ private:
 	 */
 	worker_status m_status;					//status of current thread
 
-	virtual void worker_function( void );
+	virtual void worker_function( void ) OVERRIDE;
   	/**
 	 * worker thread object
 	 */

@@ -36,6 +36,8 @@
 	using std::shared_ptr;
 	using std::unique_ptr;
 	using std::thread;
+
+	#define OVERRIDE override
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/scoped_ptr.hpp>
@@ -48,6 +50,8 @@
 	using boost::shared_ptr;
 	using boost::scoped_ptr;
 	using boost::thread;
+
+	#define OVERRIDE
 #endif
 
 //common_cpp
@@ -172,13 +176,13 @@ public:
 	 * @param work pointer to functor object
 	 */
 #ifndef NO_PRIORITY_TP_SUPPORT
-	virtual bool addFunctor(FunctorInt *work, uint8_t add_mode);
+	FunctorInt *delegateFunctor(FunctorInt *work, uint8_t add_mode);
 
-	virtual bool addFunctor(FunctorInt *work){
-		return addFunctor(work, TPI_ADD_Default);
+	virtual FunctorInt *delegateFunctor(FunctorInt *work) OVERRIDE {
+		return delegateFunctor(work, TPI_ADD_Default);
 	}
 #else
-	virtual bool addFunctor(FunctorInt *work);
+	virtual FunctorInt *delegateFunctor(FunctorInt *work) OVERRIDE;
 #endif
 
 	/**
@@ -192,7 +196,7 @@ public:
 #endif
 #ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt
-	virtual bool addPrioFunctor(PrioFunctorInt *work);
+	virtual FunctorInt *delegatePrioFunctor(FunctorInt *work) OVERRIDE;
 #endif
 protected:
 

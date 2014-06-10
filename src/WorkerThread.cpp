@@ -21,13 +21,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "WorkerThread.h"
+
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
   using namespace std;
 #else
+
   using namespace boost;
 #endif
-
-#include "WorkerThread.h"
 
 namespace icke2063 {
 namespace threadpool {

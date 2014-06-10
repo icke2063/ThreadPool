@@ -39,6 +39,8 @@
 	using namespace boost;
 #endif
 
+
+
 namespace icke2063 {
 namespace threadpool {
 
@@ -153,13 +155,13 @@ void ThreadPool::main_past(void){
 }
 #ifndef NO_PRIORITY_TP_SUPPORT
 ///advanced implemenatation of default function
-bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
+FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode) {
 
 	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
 		ThreadPool_log_debug("add Functor #%i\n", (int)m_functor_queue.size() + 1);
 		Functor *tmp_functor = dynamic_cast<Functor*>(work);
 		if (!tmp_functor)
-			return false;
+			return work;
 
 		switch (add_mode) {
 		case TPI_ADD_LiFo: {
@@ -167,7 +169,7 @@ bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 			tmp_functor->setPriority(100); //set highest priority to hold list in order
 			lock_guard<mutex> lock(m_functor_lock);
 			m_functor_queue.push_front(work);
-			return true;
+			return NULL;
 		}
 			break;
 		case TPI_ADD_FiFo: {
@@ -175,25 +177,26 @@ bool ThreadPool::addFunctor(FunctorInt *work, uint8_t add_mode) {
 			tmp_functor->setPriority(0); //set lowest priority to hold list in order
 			lock_guard<mutex> lock(m_functor_lock);
 			m_functor_queue.push_back(work);
-			return true;
+			return NULL;
 		}
 		case TPI_ADD_Prio:
 			ThreadPool_log_debug("TPI_ADD_Prio\n");
 		default:
-			return addPrioFunctor(tmp_functor);
+			return delegatePrioFunctor(tmp_functor);
 		}
 	}
 
-
 	ThreadPool_log_error("failure add Functor #%i\n", (int)m_functor_queue.size() + 1);
-
-	return false;
+	return work;
 }
 #else
-bool ThreadPool::addFunctor(FunctorInt *work) {
-	lock_guard<mutex> lock(m_functor_lock);
-	m_functor_queue.push_back(work);
-	return true;
+FunctorInt *ThreadPool::addFunctor(FunctorInt *work) {
+	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
+		lock_guard<mutex> lock(m_functor_lock);
+		m_functor_queue.push_back(work);
+		return NULL;
+	}
+	return work;
 }
 #endif
 
@@ -216,15 +219,11 @@ int ThreadPool::getQueuePos(FunctorInt *searchedFunctor) {
 
 
 #ifndef NO_PRIORITY_TP_SUPPORT
-bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
+FunctorInt *ThreadPool::delegatePrioFunctor(FunctorInt *work){
   ThreadPool_log_debug("add priority Functor #%i\n", (int)m_functor_queue.size() + 1);
  
   lock_guard<mutex> lock(m_functor_lock);	//lock functor list
-  
-//   dynamic cast Functor object reference to determine correct type */
-  FunctorInt *addable = dynamic_cast<FunctorInt*>(work);
-  if(!addable)return false;
-  
+
   functor_queue_type::iterator queue_it = m_functor_queue.begin();
 	while (queue_it != m_functor_queue.end()) {
 
@@ -234,8 +233,8 @@ bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
 
 			if (queue_item && param_item) {
 				if (queue_item->getPriority() < param_item->getPriority()) {
-					m_functor_queue.insert(queue_it, addable); //insert before
-					return true;
+					m_functor_queue.insert(queue_it, work); //insert before
+					return NULL;
 				}
 			}
 		}
@@ -244,9 +243,9 @@ bool ThreadPool::addPrioFunctor(PrioFunctorInt *work){
 
   ThreadPool_log_debug("push it at the end\n");
   // not inserted yet -> push it at the end
-  m_functor_queue.push_back(addable);
+  m_functor_queue.push_back(work);
   
-  return true;
+  return NULL;
   }
 #endif
 
@@ -394,16 +393,13 @@ void ThreadPool::checkDelayedQueue(void){
 	    
 	    if(msec >= 0){
 
-	    	//get functor reference and remove from list
-	    	FunctorInt* p_tmp_Functor = (*delayed_it)->releaseFunctor();
-	    	delayed_it = m_delayed_queue.erase(delayed_it);
-
+	    	FunctorInt *p_tmp_Functor = NULL;
 	      // add current functor to queue
-	      if(!addFunctor(p_tmp_Functor)){
-	    	  //adding not successful -> readd to front of delayed list
-	    	  m_delayed_queue.push_front(shared_ptr<DelayedFunctorInt>(new DelayedFunctor(p_tmp_Functor, &tnow)));
+	      if( ((p_tmp_Functor = delegateFunctor((*delayed_it)->releaseFunctor()))) != NULL ){
+	    	  //adding successful -> remove delayed list
+	    	  delayed_it = m_delayed_queue.erase(delayed_it);
+	    	  continue;
 	      }
-	      continue;
 	    }
 	    ++delayed_it;
 	  }

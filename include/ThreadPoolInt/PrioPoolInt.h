@@ -79,7 +79,7 @@ public:
 	 * Add functor object at the correct position of base functor queue.
 	 * MUST be implemented in inherit class (correct usage of locks, threads, ...)
 	 */
-	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work) = 0;
+	virtual FunctorInt *delegatePrioFunctor(FunctorInt *work) = 0;
 	
 };
 

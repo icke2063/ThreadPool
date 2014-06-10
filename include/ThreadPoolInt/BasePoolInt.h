@@ -119,15 +119,15 @@ public:
 	virtual ~BasePoolInt(){}
 
 	/**
-	  * Add new functor to queue
+	  * Delegate new functor to queue
 	  * - lock list before access list items
 	  * - add functor object to list
 	  *
 	  * @param work:	pointer to FunctorInt Object (will be deleted after use)
-	  * @return if true threadpool manage the functor object (delete after usage), else
-	  * 		no deletion of object -> calling instance has still to manage object
+	  * @return		[success]: NULL
+	  * 			[failure]: FunctorInt* of given object. The Functor was not added to list -> threadpool will not delete object
 	  */
-	virtual bool addFunctor(FunctorInt *work) = 0;
+	virtual FunctorInt *delegateFunctor(FunctorInt *work) = 0;
 
 	/**
 	 * get current worker count within worker list
