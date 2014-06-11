@@ -26,16 +26,14 @@
 #ifndef EXT_REF_H_
 #define EXT_REF_H_
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <mutex>
-  using std::shared_ptr;
-  using std::mutex;
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
+	#include <memory>
+	#include <mutex>
+	#define EXT_REF_H_NS std
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/thread/locks.hpp>
-  using boost::shared_ptr;
-  using boost::mutex;
+	#define EXT_REF_H_NS boost
 #endif
 
 namespace icke2063 {
@@ -56,7 +54,7 @@ namespace threadpool {
  */
 template <class T>
 class Ext_Ref {
-	mutex m_lock;
+	EXT_REF_H_NS::mutex m_lock;
 	T *m_ext_ref;
 public:
 	Ext_Ref(T *ext_ref) :
@@ -64,12 +62,12 @@ public:
 
 	Ext_Ref() { setRef(NULL); }
 
-	mutex& getLock(void) { return m_lock; }
+	EXT_REF_H_NS::mutex& getLock(void) { return m_lock; }
 
 	T *getRef(void) { return m_ext_ref; }
 
 	void setRef(T *ext_ref) {
-		lock_guard<mutex> g(m_lock);
+		EXT_REF_H_NS::lock_guard<EXT_REF_H_NS::mutex> g(m_lock);
 		m_ext_ref = ext_ref;
 	}
 };
@@ -96,11 +94,9 @@ public:
 		}
 	}
 protected:
-	shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference;
+	EXT_REF_H_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference;
 };
 
 }
 }
-
-
 #endif /* EXT_REF_H_ */

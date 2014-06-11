@@ -26,17 +26,12 @@
 
 #include <sys/time.h>
 
-
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
 	#include <memory>
-	#include <thread>
 	#include <mutex>
-	using std::mutex;
-	using std::lock_guard;
-	using std::shared_ptr;
-	using std::unique_ptr;
-	using std::thread;
+	#include <thread>
 
+	#define THREADPOOL_H_NS std
 	#define OVERRIDE override
 #else
 	#include <boost/shared_ptr.hpp>
@@ -45,12 +40,7 @@
 	#include <boost/thread/thread.hpp>
 	#include <boost/thread/locks.hpp>
 
-	using boost::mutex;
-	using boost::lock_guard;
-	using boost::shared_ptr;
-	using boost::scoped_ptr;
-	using boost::thread;
-
+	#define THREADPOOL_H_NS boost
 	#define OVERRIDE
 #endif
 
@@ -118,7 +108,7 @@ public:
 	 * - no deletion of functor
 	 */
 	virtual FunctorInt *releaseFunctor() {
-		lock_guard<mutex> g(m_lock_functor);
+		THREADPOOL_H_NS::lock_guard<THREADPOOL_H_NS::mutex> g(m_lock_functor);
 		FunctorInt *tmpFunctor = m_functor;		//tmp store reference
 		m_functor = NULL;						//reset reference
 		return tmpFunctor;						//return reference
@@ -130,7 +120,7 @@ public:
 	 * - call default function
 	 */
 	virtual void deleteFunctor(void) {
-		lock_guard<mutex> g(m_lock_functor);
+		THREADPOOL_H_NS::lock_guard<THREADPOOL_H_NS::mutex> g(m_lock_functor);
 		FunctorInt *tmpFunctor = dynamic_cast<FunctorInt*>(m_functor);		//tmp store reference
 		if(tmpFunctor)delete m_functor;
 		m_functor = NULL;
@@ -138,7 +128,7 @@ public:
 
 private:
 	// lock for reference access
-	mutex m_lock_functor;
+	THREADPOOL_H_NS::mutex m_lock_functor;
 };
 #endif
 
@@ -192,7 +182,7 @@ public:
 
 #ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
-	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline);
+	virtual THREADPOOL_H_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline);
 #endif
 #ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt
@@ -207,10 +197,10 @@ protected:
 	virtual void clearWorker(void);
 
 	///lock functor queue
-	mutex	m_functor_lock;
+	THREADPOOL_H_NS::mutex	m_functor_lock;
 
 	///lock worker queue
-	mutex	m_worker_lock;
+	THREADPOOL_H_NS::mutex	m_worker_lock;
 #ifndef NO_DELAYED_TP_SUPPORT
 
 	///Implementations for DelayedPoolInt
@@ -272,10 +262,10 @@ protected:
 	void main_thread_func(void);
 
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-	unique_ptr<thread> m_main_thread;
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
+	std::unique_ptr<std::thread> m_main_thread;
 #else
-	scoped_ptr<thread> m_main_thread;
+	boost::scoped_ptr<boost::thread> m_main_thread;
 #endif
 
 	///running flag

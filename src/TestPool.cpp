@@ -23,7 +23,7 @@ void signal_handler(int sig);
 int main() {
 	struct timeval timestamp, deadline;
 	Dummy_Functor *tmpFunctor;
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
 	std::unique_ptr<ThreadPool> pool;
 #else
 	boost::scoped_ptr<ThreadPool> pool;

@@ -31,16 +31,14 @@
 
 #include <sys/time.h>
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
-  #include <memory>
-  #include <mutex>
-using std::shared_ptr;
-using std::mutex;
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
+	#include <memory>
+	#include <mutex>
+	#define _DELAYED_THREADPOOL_H_NS std
 #else
 	#include <boost/thread/mutex.hpp>
 	#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-using boost::mutex;
+	#define _DELAYED_THREADPOOL_H_NS boost
 #endif
 
 #include "BasePoolInt.h"
@@ -132,7 +130,7 @@ public:
 	 * Add new functor object with given deadline
 	 * @param work pointer to functor object
 	 */
-	virtual shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
+	virtual _DELAYED_THREADPOOL_H_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
 
 protected:
 
@@ -142,11 +140,11 @@ protected:
 	virtual void clearDelayedList( void ) = 0;
 
 	///list of delayed functors
-	typedef std::deque<shared_ptr<DelayedFunctorInt> > delayed_list_type;
+	typedef std::deque<_DELAYED_THREADPOOL_H_NS::shared_ptr<DelayedFunctorInt> > delayed_list_type;
 	delayed_list_type m_delayed_queue;
 
 	///lock functor queue
-	mutex					m_delayed_lock;
+	_DELAYED_THREADPOOL_H_NS::mutex					m_delayed_lock;
 
 };
 } /* namespace common_cpp */

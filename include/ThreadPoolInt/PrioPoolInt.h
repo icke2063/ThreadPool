@@ -31,8 +31,6 @@
 namespace icke2063 {
 namespace threadpool {
 
-  
-  
 ///Priority Functor for ThreadPool
 /**
  * Inherit from this class then it can be added by ThreadPool::addFunctor with an implementation

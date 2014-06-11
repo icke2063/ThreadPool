@@ -33,7 +33,7 @@
 #include "../include/ThreadPool.h"
 #include "../include/WorkerThread.h"
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
 	using namespace std;
 #else
 	using namespace boost;
