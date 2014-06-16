@@ -35,6 +35,8 @@
 #include <list>
 #include <unistd.h>
 
+#include <config.h>
+
 #ifndef WORKERTHREAD_MAX
 	#define WORKERTHREAD_MAX	60
 #endif

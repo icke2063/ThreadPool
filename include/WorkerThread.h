@@ -24,18 +24,19 @@
 #ifndef WORKERTHREAD_H_
 #define WORKERTHREAD_H_
 
+#include <config.h>
+
 #ifndef ICKE2063_THREADPOOL_NO_CPP11
 	#include <memory>
 	#include <thread>
 
-	#define WORKERTHREAD_H_NS std
+	#define TP_WT_NS std
 	#define OVERRIDE override
 #else
 	#include <boost/shared_ptr.hpp>
-	#include <boost/scoped_ptr.hpp>
 	#include <boost/thread.hpp>
 
-	#define WORKERTHREAD_H_NS boost
+	#define TP_WT_NS boost
 
 	#define OVERRIDE
 #endif
@@ -68,7 +69,7 @@ namespace threadpool {
 class WorkerThread: public WorkerThreadInt {
 	friend class ThreadPool;
 public:
-	WorkerThread(WORKERTHREAD_H_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference);
+	WorkerThread(TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference);
 
 	virtual ~WorkerThread();
 
@@ -101,11 +102,7 @@ private:
   	/**
 	 * worker thread object
 	 */
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-	std::unique_ptr<std::thread> m_worker_thread;
-#else
-	boost::scoped_ptr<boost::thread> m_worker_thread;
-#endif
+	std::auto_ptr<TP_WT_NS::thread> m_worker_thread;
 
 	/**
 	 * running flag for worker thread
@@ -121,7 +118,7 @@ private:
 	/**
 	 * shared reference to basepool object
 	 */
-	WORKERTHREAD_H_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
+	TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
 };
 
 } /* namespace common_cpp */

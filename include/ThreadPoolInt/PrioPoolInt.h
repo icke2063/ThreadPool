@@ -4,6 +4,7 @@
  * @date   23.11.2013
  * @brief  PriorityTreadPool extension for ThreadPoolInt
  *
+ *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
  * This software is free; you can redistribute it and/or
@@ -23,6 +24,9 @@
 
 #ifndef _PRIOPOOLINT__
 #define _PRIOPOOLINT__
+
+#include <config.h>
+
 #ifndef NO_PRIORITY_TP_SUPPORT
 
 #include <stdint.h>

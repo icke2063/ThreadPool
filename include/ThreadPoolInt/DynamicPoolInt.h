@@ -24,6 +24,8 @@
 #ifndef _DYNAMIC_THREADPOOL_H_
 #define _DYNAMIC_THREADPOOL_H_
 
+#include <config.h>
+
 #ifndef NO_DYNAMIC_TP_SUPPORT
 
 #include <sys/time.h>
@@ -100,7 +102,7 @@ protected:
 	uint16_t HighWatermark;		//high count of worker threads
 	bool	dynamic_enabled;	//enable flag
 };
-} /* namespace common_cpp */
+} /* namespace threadpool */
 } /* namespace icke2063 */
 
 #endif

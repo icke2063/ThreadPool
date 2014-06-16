@@ -7,6 +7,8 @@
  * 		If this deadline is over the Functor has to be added to normal Threadpool queue.
  * The function to check the timestamps has to be called continuously.
  *
+ * Namespace switching: see README.md
+ *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
  * This software is free; you can redistribute it and/or
@@ -27,18 +29,24 @@
 #ifndef _DELAYED_THREADPOOL_H_
 #define _DELAYED_THREADPOOL_H_
 
+#include <config.h>
+
 #ifndef NO_DELAYED_TP_SUPPORT
 
 #include <sys/time.h>
 
+#ifdef TPD_NS
+#error "namespace constant 'TPD_NS' already defined"
+#endif
+
 #ifndef ICKE2063_THREADPOOL_NO_CPP11
 	#include <memory>
 	#include <mutex>
-	#define _DELAYED_THREADPOOL_H_NS std
+	#define TPD_NS std
 #else
 	#include <boost/thread/mutex.hpp>
 	#include <boost/shared_ptr.hpp>
-	#define _DELAYED_THREADPOOL_H_NS boost
+	#define TPD_NS boost
 #endif
 
 #include "BasePoolInt.h"
@@ -128,9 +136,10 @@ public:
 	
 	/**
 	 * Add new functor object with given deadline
-	 * @param work pointer to functor object
+	 * @param work: pointer to functor object
+	 * @param deadline: pointer to functor object
 	 */
-	virtual _DELAYED_THREADPOOL_H_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
+	virtual TPD_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
 
 protected:
 
@@ -140,14 +149,14 @@ protected:
 	virtual void clearDelayedList( void ) = 0;
 
 	///list of delayed functors
-	typedef std::deque<_DELAYED_THREADPOOL_H_NS::shared_ptr<DelayedFunctorInt> > delayed_list_type;
+	typedef std::deque<TPD_NS::shared_ptr<DelayedFunctorInt> > delayed_list_type;
 	delayed_list_type m_delayed_queue;
 
 	///lock functor queue
-	_DELAYED_THREADPOOL_H_NS::mutex					m_delayed_lock;
+	TPD_NS::mutex					m_delayed_lock;
 
 };
-} /* namespace common_cpp */
+} /* namespace threadpool */
 } /* namespace icke2063 */
 
 #endif /* _DELAYED_TP_SUPPORT */

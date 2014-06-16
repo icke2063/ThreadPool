@@ -37,6 +37,7 @@
 	using namespace std;
 #else
 	using namespace boost;
+	#include <boost/thread/locks.hpp>
 #endif
 
 
@@ -372,6 +373,21 @@ void ThreadPool::handleWorkerCount(void) {
 #endif
 
 #ifndef NO_DELAYED_TP_SUPPORT
+
+FunctorInt *DelayedFunctor::releaseFunctor() {
+	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
+	FunctorInt *tmpFunctor = m_functor;		//tmp store reference
+	m_functor = NULL;						//reset reference
+	return tmpFunctor;						//return reference
+}
+
+void DelayedFunctor::deleteFunctor(void) {
+	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
+	FunctorInt *tmpFunctor = dynamic_cast<FunctorInt*>(m_functor);		//tmp store reference
+	if(tmpFunctor)delete m_functor;
+	m_functor = NULL;
+}
+
 void ThreadPool::checkDelayedQueue(void){
 	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
 	  

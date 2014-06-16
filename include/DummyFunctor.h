@@ -14,8 +14,6 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-using namespace icke2063::threadpool;
-
 namespace icke2063 {
 namespace threadpool {
 
