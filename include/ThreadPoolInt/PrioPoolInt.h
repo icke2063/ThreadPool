@@ -25,7 +25,7 @@
 #ifndef _PRIOPOOLINT__
 #define _PRIOPOOLINT__
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #ifndef NO_PRIORITY_TP_SUPPORT
 

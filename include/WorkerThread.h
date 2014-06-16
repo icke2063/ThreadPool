@@ -24,7 +24,7 @@
 #ifndef WORKERTHREAD_H_
 #define WORKERTHREAD_H_
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #ifndef ICKE2063_THREADPOOL_NO_CPP11
 	#include <memory>

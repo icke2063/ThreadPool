@@ -28,6 +28,8 @@
 #ifndef EXT_REF_H_
 #define EXT_REF_H_
 
+#include <icke2063_TP_config.h>
+
 #ifdef TPER_NS
 #error "namespace constant 'TPER_NS' already defined"
 #endif

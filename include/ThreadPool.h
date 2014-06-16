@@ -26,7 +26,7 @@
 #ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #include <sys/time.h>
 

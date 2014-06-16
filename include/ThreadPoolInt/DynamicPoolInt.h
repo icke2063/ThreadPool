@@ -24,7 +24,7 @@
 #ifndef _DYNAMIC_THREADPOOL_H_
 #define _DYNAMIC_THREADPOOL_H_
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #ifndef NO_DYNAMIC_TP_SUPPORT
 

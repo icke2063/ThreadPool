@@ -35,7 +35,7 @@
 #include <list>
 #include <unistd.h>
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #ifndef WORKERTHREAD_MAX
 	#define WORKERTHREAD_MAX	60

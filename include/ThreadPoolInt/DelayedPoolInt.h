@@ -29,7 +29,7 @@
 #ifndef _DELAYED_THREADPOOL_H_
 #define _DELAYED_THREADPOOL_H_
 
-#include <config.h>
+#include <icke2063_TP_config.h>
 
 #ifndef NO_DELAYED_TP_SUPPORT
 
