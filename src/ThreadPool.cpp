@@ -191,7 +191,7 @@ FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode) {
 	return work;
 }
 #else
-FunctorInt *ThreadPool::addFunctor(FunctorInt *work) {
+FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work) {
 	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
 		lock_guard<mutex> lock(m_functor_lock);
 		m_functor_queue.push_back(work);

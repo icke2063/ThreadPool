@@ -261,7 +261,7 @@ protected:
 	 */
 	void main_thread_func(void);
 
-	std::auto_ptr<std::thread> m_main_thread;
+	std::auto_ptr<TP_NS::thread> m_main_thread;
 
 	///running flag
 	bool m_loop_running;
