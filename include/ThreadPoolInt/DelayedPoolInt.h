@@ -93,19 +93,27 @@ class DelayedFunctorInt{
   void renewDeadline(struct timeval deadline){m_deadline = deadline;}
 
    /**
-    * get stored FunctorInt
+    * get stored FunctorInt and release reference
     * - no deletion of functor
     */
    virtual FunctorInt *releaseFunctor() = 0;
 
    /**
+    * reset stored FunctorInt
+    * - deletion of functor
+    */
+   virtual void resetFunctor(FunctorInt *functor) = 0;
+
+   /**
     * delete stored FunctorInt
     */
-   virtual void deleteFunctor( void ) = 0;
+   void deleteFunctor( void ){
+	   resetFunctor(NULL);
+   }
 
  protected:   
    // storage for functor reference
-   FunctorInt *m_functor;
+   std::auto_ptr<FunctorInt> m_functor;
 
    /**
     * absolute timestamp after this deadline the functor should be added to threadpool

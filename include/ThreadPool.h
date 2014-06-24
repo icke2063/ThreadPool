@@ -115,16 +115,16 @@ public:
 	/**
 	 * get stored FunctorInt
 	 * - lock list
-	 * - no deletion of functor
+	 * - release smartpointer
 	 */
 	virtual FunctorInt *releaseFunctor() OVERRIDE;
 
 	/**
 	 * delete stored FunctorInt
 	 * - lock
-	 * - call default function
+	 * - reset smartpointer
 	 */
-	virtual void deleteFunctor(void) OVERRIDE;
+	virtual void resetFunctor(FunctorInt *functor) OVERRIDE;
 
 private:
 	// lock for reference access

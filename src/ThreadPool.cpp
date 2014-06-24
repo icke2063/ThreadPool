@@ -376,16 +376,12 @@ void ThreadPool::handleWorkerCount(void) {
 
 FunctorInt *DelayedFunctor::releaseFunctor() {
 	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
-	FunctorInt *tmpFunctor = m_functor;		//tmp store reference
-	m_functor = NULL;						//reset reference
-	return tmpFunctor;						//return reference
+	return m_functor.release();						//return reference
 }
 
-void DelayedFunctor::deleteFunctor(void) {
+void DelayedFunctor::resetFunctor(FunctorInt *functor) {
 	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
-	FunctorInt *tmpFunctor = dynamic_cast<FunctorInt*>(m_functor);		//tmp store reference
-	if(tmpFunctor)delete m_functor;
-	m_functor = NULL;
+	m_functor.reset(functor);
 }
 
 void ThreadPool::checkDelayedQueue(void){
@@ -409,12 +405,16 @@ void ThreadPool::checkDelayedQueue(void){
 	    
 	    if(msec >= 0){
 
-	    	FunctorInt *p_tmp_Functor = NULL;
+	    	FunctorInt *p_tmp_Functor = (*delayed_it)->releaseFunctor();
 	      // add current functor to queue
-	      if( ((p_tmp_Functor = delegateFunctor((*delayed_it)->releaseFunctor()))) != NULL ){
-	    	  //adding successful -> remove delayed list
+	      if( ((p_tmp_Functor = delegateFunctor(p_tmp_Functor))) == NULL ){
+	    	  //adding successful -> remove from delayed list
 	    	  delayed_it = m_delayed_queue.erase(delayed_it);
 	    	  continue;
+	      } else {
+
+	    	  // oh no got it back -> readd reference to delayedFunctor and try again later
+	    	  (*delayed_it)->resetFunctor(p_tmp_Functor);
 	      }
 	    }
 	    ++delayed_it;
