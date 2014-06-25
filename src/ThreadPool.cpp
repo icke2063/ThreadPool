@@ -428,22 +428,19 @@ void ThreadPool::clearDelayedList( void ){
 }
 
 
-shared_ptr<DelayedFunctorInt> ThreadPool::addDelayedFunctor(FunctorInt *work, struct timeval *deadline){
-
-	shared_ptr<DelayedFunctorInt> tmp_functor;
+shared_ptr<DelayedFunctorInt> ThreadPool::delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor){
 
 	if(m_delayed_queue.size() < DELAYED_FUNCTOR_MAX){
 		ThreadPool_log_trace("add DelayedFunctor #%i", m_delayed_queue.size() + 1);
 		lock_guard<mutex> lock(m_delayed_lock);
-		tmp_functor = shared_ptr<DelayedFunctorInt>(new DelayedFunctor(work, deadline));
 
-		m_delayed_queue.push_back(tmp_functor);
-		return tmp_functor;
+		m_delayed_queue.push_back(dfunctor);
+		return shared_ptr<DelayedFunctorInt>();
 
 	}
 
 	ThreadPool_log_error("failure add DelayedFunctor #%d", (int)m_delayed_queue.size() + 1);
-	return tmp_functor;
+	return dfunctor;
 }
 #endif
 

@@ -182,7 +182,7 @@ public:
 
 #ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
-	virtual TP_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) OVERRIDE;
+	virtual TP_NS::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor) OVERRIDE;
 #endif
 #ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt

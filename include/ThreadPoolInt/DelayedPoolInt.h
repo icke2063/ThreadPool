@@ -144,10 +144,11 @@ public:
 	
 	/**
 	 * Add new functor object with given deadline
-	 * @param work: pointer to functor object
-	 * @param deadline: pointer to functor object
+	 * @param[IN]	dfunctor	shared pointer to delayed functor object
+	 *
+	 * @return	[success] empty shared pointer, [failure] same pointer as input
 	 */
-	virtual TPD_NS::shared_ptr<DelayedFunctorInt> addDelayedFunctor(FunctorInt *work, struct timeval *deadline) = 0;
+	virtual TPD_NS::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor) = 0;
 
 protected:
 
