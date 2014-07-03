@@ -37,95 +37,102 @@ if(argc >= 2){
 			 * 		* addWorker
 			 */
 
+			printf("Test A:\n");
+			printf("Create pool test -> test parameter and threadpool object creation\n");
+
 			//create default ThreadPool
+			printf("[]:\t\t ");
 			testpool.reset(new icke2063::threadpool::ThreadPool());
 			if (testpool.get() == NULL && !testpool->isPoolLoopRunning()) {
-				printf("Test[A;%d]: failed\n", subtest);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
 			//create default ThreadPool
+			printf("[1, 0]:\t\t ");
 			testpool.reset(new icke2063::threadpool::ThreadPool(1, false));
 			if (testpool.get() == NULL && testpool->isPoolLoopRunning()) {
-				printf("Test[A;%d]: failed\n", subtest);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
 			//create 10 worker threadpool
+			printf("[10]:\t\t ");
 			testpool.reset(new icke2063::threadpool::ThreadPool(10));
 			if (testpool.get() == NULL || testpool->getWorkerCount() != 10) {
-				printf("Test[A;%d]: failed\n", subtest++);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
 			//create maximum worker threadpool
-			testpool.reset(
-					new icke2063::threadpool::ThreadPool(WORKERTHREAD_MAX));
-			if (testpool.get() == NULL
-					|| testpool->getWorkerCount() != WORKERTHREAD_MAX) {
-				printf("Test[A;%d]: failed\n", subtest++);
+			printf("[MAX]:\t\t ");
+			testpool.reset(	new icke2063::threadpool::ThreadPool(WORKERTHREAD_MAX));
+			if (testpool.get() == NULL || testpool->getWorkerCount() != WORKERTHREAD_MAX) {
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
 			//create 0 worker threadpool
+			printf("[0]:\t\t ");
 			testpool.reset(new icke2063::threadpool::ThreadPool(0));
 			if (testpool.get() == NULL || testpool->getWorkerCount() != 1) {
-				printf("Test[A;%d]: failed\n", subtest++);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
-			//create maximum worker threadpool
-			testpool.reset(
-					new icke2063::threadpool::ThreadPool(WORKERTHREAD_MAX));
-			if (testpool.get() == NULL
-					|| testpool->getWorkerCount() != WORKERTHREAD_MAX) {
-				printf("Test[A;%d]: failed\n", subtest++);
-				exit(1);
-			} else {
-				printf("Test[A;%d]: passed\n", subtest++);
-			}
+			printf("Test[A]: \t passed\n");
 
 			break;
 		case 'B':
 			/**
 			 * create Functor
 			 */
+
+			printf("Test B:\n");
+			printf("Create functor test -> simple DummyFunctor object creation\n");
+
+			printf("[100,0]:\t\t ");
 			dummy.reset(new icke2063::threadpool::Dummy_Functor(100, true));
 			if (dummy.get() == NULL) {
-				printf("Test[B;%d]: failed", subtest++);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[B;%d]: passed", subtest++);
+				printf("passed\n");
 			}
+			printf("Test[B]: \t passed\n");
 			break;
 
 		case 'C': {
 			/**
 			 * delegateFunctor -> use ThreadPool to handle functor
 			 */
+			printf("Test C:\n");
+			printf("Test_Functor test -> use threadpool to handle special functor\n");
+
+			printf("Test_Functor[p,1000,1]:\n");
+
 			int counter;
 			TP_NS::shared_ptr<uint32_t> flag(new uint32_t);
 			(*flag.get()) = icke2063::threadpool::Test_Functor::init;
-
 			testpool.reset(new icke2063::threadpool::ThreadPool());
-
 			dummy.reset(new icke2063::threadpool::Test_Functor(flag, 1000, true));
 			//check constructor call from functor
+			printf("construct: \t\t ");
 			if ((*flag.get()) != icke2063::threadpool::Test_Functor::construct) {
-				printf("Test[C;%d]: failed\n", subtest++);
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[C;%d]: passed\n", subtest++);
+				printf("passed\n");
 			}
 
 			if (dummy.get() != NULL || testpool.get() != NULL || flag.get() != NULL) {
@@ -133,11 +140,12 @@ if(argc >= 2){
 				icke2063::threadpool::Test_Functor *result = (icke2063::threadpool::Test_Functor *) testpool->delegateFunctor(dummy.release());
 
 				//check result of adding Functor
+				printf("delegate: \t\t ");
 				if (result) {
-					printf("Test[C;%d]: failed\n", subtest++);
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[C;%d]: passed\n", subtest++);
+					printf("passed\n");
 				}
 
 				counter = 0;
@@ -147,11 +155,13 @@ if(argc >= 2){
 					usleep(1);
 				}
 
+				printf("start: \t\t ");
+
 				if (counter >= 100) {
-					printf("Test[C;%d]: failed\n", subtest++);
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[C;%d]: passed\n", subtest++);
+					printf("passed\n");
 				}
 
 				counter = 0;
@@ -160,21 +170,23 @@ if(argc >= 2){
 					usleep(1000);
 				}
 
+				printf("stop: \t\t ");
 				if (counter >= 1000) {
-					printf("Test[C;%d]: failed\n", subtest++);
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[C;%d]: passed\n", subtest++);
+					printf("passed\n");
 				}
 
+				printf("finished: \t\t ");
 				if(testpool->getQueueCount() != 0){
-					printf("Test[C;%d]: failed\n", subtest++);
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[C;%d]: passed\n", subtest++);
+					printf("passed\n");
 				}
 			} else {
-				printf("Test[C;%d]: failed\n", subtest++);
+				printf("Test C failed\n");
 				exit(1);
 			}
 			printf("Test[C]: passed\n");
@@ -186,8 +198,15 @@ if(argc >= 2){
 				 * Test getQueueCount
 				 */
 
+			printf("Test D:\n");
+			printf("Queue test\n");
+
+
 			int workercount = 5;
 			int functorcount = 1030;
+
+			printf("test input[max worker:%d;max functor:%d]\n",workercount, functorcount);
+			printf("test output{used worker,added functors}\n");
 
 			TP_NS::shared_ptr<bool> flag(new bool);
 			for (int worker = 1; worker <= workercount; worker++) {
@@ -210,7 +229,7 @@ if(argc >= 2){
 								dummy.reset();
 								break;
 							} else {
-								printf("Test[D;1;{%d;%d}]: failed\n", worker, i);
+								printf("Test[D;Add;{%d;%d}]: failed\n", worker, i);
 
 								printf("QC: %d",testpool->getQueueCount());
 
@@ -228,26 +247,29 @@ if(argc >= 2){
 					sleep(1); //wait a little until all functor added to worker
 
 					if (testpool->getQueueCount() != (functor_num - worker < 0 ?	0 : functor_num - worker)) {
-						printf("Test[D;2;{%d}] failed\n", worker);
+						printf("Test[D;Check;{%d}] failed\n", worker);
 						(*flag.get()) = false;
 						sleep(1);
 						exit(1);
 					} else {
-						printf("Test[D;2;{%d;%d}]: passed\n", worker, functor_num);
+						printf("Test[D;Add/Check;{%d;%d}]: passed\n", worker, functor_num);
 					}
 
 					(*flag.get()) = false;
 					sleep(1);
 
+					printf("handle: \t");
+
 					if (testpool->getQueueCount() != 0) {
-						printf("Test[D;3]: failed\n");
+						printf(" failed\n");
 						exit(1);
 					} else {
-						printf("Test[D;3]: passed\n");
+						printf(" passed\n");
 					}
 				}
 			}
 		}
+		printf("Test[D]: passed\n");
 		break;
 #ifndef NO_DELAYED_TP_SUPPORT
 		case 'E':
@@ -255,6 +277,10 @@ if(argc >= 2){
 			/**
 			 * Test delegateDelayedFunctor
 			 */
+
+			printf("Test E:\n");
+			printf("Delayed test\n");
+
 			int counter;
 			TP_NS::shared_ptr<uint32_t> flag(new uint32_t);
 			struct timeval t_deadline, t_now;
@@ -273,11 +299,12 @@ if(argc >= 2){
 
 			dummy.reset(new icke2063::threadpool::Test_Functor(flag, 1000, true));
 			//check constructor call from functor
+			printf("construct:\t");
 			if ((*flag.get()) != icke2063::threadpool::Test_Functor::construct) {
-				printf("Test[E;1]: failed\n");
+				printf("failed\n");
 				exit(1);
 			} else {
-				printf("Test[E;1]: passed\n");
+				printf("passed\n");
 			}
 
 			TP_NS::shared_ptr<DelayedFunctorInt> sp_dfunc(new DelayedFunctor(dummy.release(), &t_deadline));
@@ -288,11 +315,12 @@ if(argc >= 2){
 				TP_NS::shared_ptr<DelayedFunctorInt> result = testpool->delegateDelayedFunctor(sp_dfunc);
 
 				//check result of adding Functor
+				printf("delegate:\t");
 				if (result.get() != NULL) {
-					printf("Test[E;2]: failed\n");
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[E;2]: passed\n");
+					printf("passed\n");
 				}
 
 
@@ -304,18 +332,21 @@ if(argc >= 2){
 
 
 					if((*flag.get()) == icke2063::threadpool::Test_Functor::start){
-						printf("Test[E;3;1]: failed\n");
+						printf("wait[start]:\t");
+						printf("failed\n");
 						exit(1);
 					}
 
 					if(testpool->getQueueCount() != 0){
-						printf("Test[E;3;2]: failed\n");
+						printf("wait[Q!=0]:\t");
+						printf("failed\n");
 						exit(1);
 					}
 
 
 					if(testpool->getDQueueCount() != 1){
-						printf("Test[E;3]: failed\n");
+						printf("wait[DQ!=1]:\t");
+						printf("failed\n");
 						exit(1);
 					}
 
@@ -323,7 +354,7 @@ if(argc >= 2){
 					usleep(10);
 				}while(msec < -10);
 
-				printf("Test[E;3]: passed\n");
+				printf("wait:\t passed\n");
 
 				counter = 0;
 				//wait for start handling functor
@@ -331,11 +362,12 @@ if(argc >= 2){
 					usleep(10);
 				}
 
+				printf("start:\t");
 				if (counter >= 1000) {
-					printf("Test[E;4]: failed\n");
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[E;4]{%d}: passed\n",counter);
+					printf("{%d} passed\n",counter);
 				}
 
 				counter = 0;
@@ -345,17 +377,18 @@ if(argc >= 2){
 					usleep(1000);
 				}
 
+				printf("stop:\t");
 				if (counter >= 1000) {
-					printf("Test[E;5]: failed\n");
+					printf("failed\n");
 					exit(1);
 				} else {
-					printf("Test[E;5]: passed\n");
+					printf("passed\n");
 				}
 			} else {
-				printf("Test[E;0]: failed\n");
+				printf("Test[E;init]: failed\n");
 				exit(1);
 			}
-			printf("Test[C]: passed\n");
+			printf("Test[E]: passed\n");
 		}
 		break;
 #endif
