@@ -15,6 +15,7 @@ using namespace icke2063::threadpool;
 
 #include "DummyFunctor.h"
 
+#define TP_TEST_E_WAITTOSTART_MAX_COUNT	100000
 
 int main(int argc, char **argv){
 int subtest = 0;
@@ -354,20 +355,20 @@ if(argc >= 2){
 					usleep(10);
 				}while(msec < -10);
 
-				printf("wait:\t passed\n");
+				printf("wait[%li msec]:\t passed\n",msec);
 
 				counter = 0;
-				//wait for start handling functor
-				while ((*flag.get()) != icke2063::threadpool::Test_Functor::start && (counter++ < 1000)) {
-					usleep(10);
+				//wait for start handling functor (max 100 miliseconds)
+				while ((*flag.get()) != icke2063::threadpool::Test_Functor::start && (counter++ < TP_TEST_E_WAITTOSTART_MAX_COUNT)) {
+					usleep(1);
 				}
 
 				printf("start:\t");
-				if (counter >= 1000) {
+				if (counter >= TP_TEST_E_WAITTOSTART_MAX_COUNT) {
 					printf("failed\n");
 					exit(1);
 				} else {
-					printf("{%d} passed\n",counter);
+					printf("{(%d us)} passed\n",counter);
 				}
 
 				counter = 0;
