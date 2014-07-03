@@ -37,7 +37,7 @@ public:
 		m_time_to_wait_ms(time_to_wait_ms), m_silent(silent){
 	  gettimeofday(&creation_time,NULL);
 	  Dummy_Functor_log_info("Dummy_Functor[%p]\n", this);
-	  printTimestamp(&creation_time);
+	  if(!silent)printTimestamp(&creation_time);
 	};
 	virtual ~Dummy_Functor(){
 		  Dummy_Functor_log_info("~Dummy_Functor[%p]\n", this);

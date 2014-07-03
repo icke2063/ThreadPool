@@ -175,6 +175,7 @@ public:
 	virtual FunctorInt *delegateFunctor(FunctorInt *work) OVERRIDE;
 #endif
 
+	bool isPoolLoopRunning(){return m_loop_running;}
 	/**
 	 * get queue position of given Functor reference
 	 */

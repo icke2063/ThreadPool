@@ -13,7 +13,7 @@
 using namespace std;
 
 #include "../include/ThreadPool.h"
-#include "../include/DummyFunctor.h"
+#include "../unittest/DummyFunctor.h"
 
 using namespace icke2063::threadpool;
 
@@ -96,7 +96,7 @@ int main() {
 				deadline.tv_usec += r_delay;
 
 				tmpFunctor->printTimestamp(&timestamp);
-				pool->addDelayedFunctor(tmpFunctor, &deadline);
+				pool->delegateDelayedFunctor(shared_ptr<DelayedFunctorInt>(new DelayedFunctor(tmpFunctor, &deadline)));
 #endif
 			}
 		}
