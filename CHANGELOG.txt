@@ -1,3 +1,37 @@
+v0.2.3
+------
+ * change testing
+ * add unittests
+ * [bugfix] switching namespace
+
+v0.2.2
+------
+ * rename config file
+ * [bugfix] switching namespace
+ * [bugfix] rename addFunctor -> delegateFunctor
+ * [bugfix] checkDelayedQueue
+ * change delayed pool interface
+
+v0.2.1
+------
+ * change namespace switching
+	- remove "using ..." from header
+	- define header file specific namespace constants
+	- use namespace constants within src files
+ * use keyword override (C++11)
+
+v0.2.0
+------
+ * DynamicPool: add parameter to constructor
+ * add fast Worker shutdown (reset running thread)
+ * reduce some compiler warnings
+ * add throwing exception if not possible to add Worker in threadpool constructor
+ * add getQueuePos()
+ * [bugfix] addFunctor usage
+ * [bugfix] comma position within preprocessor conditions
+ * remove some common "using namespace"
+ * add try catch around functor
+
 v0.1.0
 ------
  * reorganize Threadpool interfaces
