@@ -7,6 +7,7 @@
 
 //#include <auto_ptr.h>
 #include <memory>
+#include <stdlib.h>
 
 #include "ThreadPool.h"
 #include "TestPool.h"
