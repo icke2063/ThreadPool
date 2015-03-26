@@ -70,9 +70,6 @@
 #endif
 
 //logging macros
-#ifdef THREADPOOL_LOG_INCLUDE
-THREADPOOL_LOG_INCLUDE
-#endif
 #ifndef ThreadPool_log_trace
 	#define ThreadPool_log_trace(...)
 #endif

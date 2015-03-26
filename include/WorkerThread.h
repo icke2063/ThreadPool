@@ -45,10 +45,6 @@
 //common_cpp
 #include <ThreadPool.h>
 
-#ifdef WORKERTHREAD_LOG_INCLUDE
-WORKERTHREAD_LOG_INCLUDE
-#endif
-
 //logging macros
 #ifndef WorkerThread_log_trace
 	#define WorkerThread_log_trace(...)
