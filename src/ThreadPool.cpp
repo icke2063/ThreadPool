@@ -50,7 +50,8 @@ ThreadPool::ThreadPool(uint8_t worker_count, bool auto_start):
 		DynamicPoolInt(worker_count, worker_count>1?true:false),
 #endif
 		m_pool_running(true)
-		,m_main_sleep_us(DEFAULT_MAIN_SLEEP_US)
+		,m_main_idle_us(DEFAULT_TP_MAINLOOP_IDLE_US)
+		,m_worker_idle_us(DEFAULT_WORKER_IDLE_US)
 
 {
 	int add_worker_count = 0;
@@ -128,19 +129,29 @@ void ThreadPool::main_thread_func(void){
     main_pre();
     while (m_pool_running) {
 	this_thread::yield();
-      if(m_pool_running){
+      if(m_pool_running)
+      {
     	  ThreadPool_log_trace("main_loop\n");
     	  main_loop();
       }
-      this_thread::sleep_for(chrono::microseconds(m_main_sleep_us));
+      /**
+       * @todo replace simple wait by calculated timediff idletime - looptime
+       */
+#ifndef ICKE2063_THREADPOOL_NO_CPP11
+		this_thread::sleep_for(chrono::microseconds(m_main_idle_us));
+#else
+		usleep(m_main_idle_us);
+#endif
     }
     main_past();
 }
 
-void ThreadPool::main_pre(void){ 
+void ThreadPool::main_pre(void)
+{
 }
 
-void ThreadPool::main_loop(void) {
+void ThreadPool::main_loop(void)
+{
 #ifndef NO_DYNAMIC_TP_SUPPORT
 	if (isDynEnabled()) {
 		/* dynamic worker handling enabled -> handle current worker count */
@@ -152,38 +163,65 @@ void ThreadPool::main_loop(void) {
 #endif
 }
 
-void ThreadPool::main_past(void){
+void ThreadPool::main_past(void)
+{
 }
+
+void ThreadPool::setTPMainLoopIdleTime(uint32_t main_idle_us)
+{
+	m_main_idle_us = main_idle_us;
+}
+
+void ThreadPool::setAllWorkerIdleTime(uint32_t worker_idle_us)
+{
+
+	m_worker_idle_us = worker_idle_us;	//set local variable for new Worker creation
+
+	lock_guard<mutex> lock(m_worker_lock); // lock before worker list access
+	worker_list_type::iterator worker_it = m_workerThreads.begin();
+	while(worker_it != m_workerThreads.end())
+	{
+		((WorkerThread*)(*worker_it))->setWorkerIdleTime(worker_idle_us);
+		++worker_it;
+	}
+}
+
+
 #ifndef NO_PRIORITY_TP_SUPPORT
 ///advanced implemenatation of default function
-FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode) {
+FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode)
+{
 
-	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
+	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX))
+	{
 		ThreadPool_log_debug("add Functor #%i\n", (int)m_functor_queue.size() + 1);
 		Functor *tmp_functor = dynamic_cast<Functor*>(work);
 		if (!tmp_functor)
 			return work;
 
-		switch (add_mode) {
-		case TPI_ADD_LiFo: {
-			ThreadPool_log_debug("TPI_ADD_LiFo\n");
-			tmp_functor->setPriority(100); //set highest priority to hold list in order
-			lock_guard<mutex> lock(m_functor_lock);
-			m_functor_queue.push_front(work);
-			return NULL;
-		}
+		switch (add_mode)
+		{
+			case TPI_ADD_LiFo:
+			{
+				ThreadPool_log_debug("TPI_ADD_LiFo\n");
+				tmp_functor->setPriority(100); //set highest priority to hold list in order
+				lock_guard<mutex> lock(m_functor_lock);
+				m_functor_queue.push_front(work);
+				return NULL;
+			}
 			break;
-		case TPI_ADD_FiFo: {
-			ThreadPool_log_debug("TPI_ADD_FiFo\n");
-			tmp_functor->setPriority(0); //set lowest priority to hold list in order
-			lock_guard<mutex> lock(m_functor_lock);
-			m_functor_queue.push_back(work);
-			return NULL;
-		}
-		case TPI_ADD_Prio:
-			ThreadPool_log_debug("TPI_ADD_Prio\n");
-		default:
-			return delegatePrioFunctor(tmp_functor);
+			case TPI_ADD_FiFo:
+			{
+				ThreadPool_log_debug("TPI_ADD_FiFo\n");
+				tmp_functor->setPriority(0); //set lowest priority to hold list in order
+				lock_guard<mutex> lock(m_functor_lock);
+				m_functor_queue.push_back(work);
+				return NULL;
+			}
+			case TPI_ADD_Prio:
+				ThreadPool_log_debug("TPI_ADD_Prio\n");
+			default:
+				return delegatePrioFunctor(tmp_functor);
 		}
 	}
 
@@ -201,14 +239,17 @@ FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work) {
 }
 #endif
 
-int ThreadPool::getQueuePos(FunctorInt *searchedFunctor) {
+int ThreadPool::getQueuePos(FunctorInt *searchedFunctor)
+{
 	int pos = -1;
 	lock_guard<mutex> lock(m_functor_lock); //lock functor list
 
 	functor_queue_type::iterator queue_it = m_functor_queue.begin();
-	while (queue_it != m_functor_queue.end()) {
+	while (queue_it != m_functor_queue.end())
+	{
 		pos++;	//raise
-		if (*queue_it == searchedFunctor) {
+		if (*queue_it == searchedFunctor)
+		{
 			//found matching reference -> exit function
 			return pos;
 		}
@@ -220,13 +261,15 @@ int ThreadPool::getQueuePos(FunctorInt *searchedFunctor) {
 
 
 #ifndef NO_PRIORITY_TP_SUPPORT
-FunctorInt *ThreadPool::delegatePrioFunctor(FunctorInt *work){
+FunctorInt *ThreadPool::delegatePrioFunctor(FunctorInt *work)
+{
   ThreadPool_log_debug("add priority Functor #%i\n", (int)m_functor_queue.size() + 1);
  
   lock_guard<mutex> lock(m_functor_lock);	//lock functor list
 
   functor_queue_type::iterator queue_it = m_functor_queue.begin();
-	while (queue_it != m_functor_queue.end()) {
+	while (queue_it != m_functor_queue.end())
+	{
 
 		{
 			PrioFunctorInt *queue_item = dynamic_cast<PrioFunctorInt*>(*queue_it);
@@ -250,14 +293,18 @@ FunctorInt *ThreadPool::delegatePrioFunctor(FunctorInt *work){
   }
 #endif
 
-bool ThreadPool::addWorker(void) {
-	if (m_pool_running && m_workerThreads.size() < WORKERTHREAD_MAX) {
+bool ThreadPool::addWorker(void)
+{
+	if (m_pool_running && m_workerThreads.size() < WORKERTHREAD_MAX)
+	{
 		ThreadPool_log_debug("addworker[%p] #%d\n", (void*)this, (int)m_workerThreads.size() +1);
 		lock_guard<mutex> lock(m_worker_lock); // lock before worker list access
-		try {
-			WorkerThreadInt *newWorker = new WorkerThread(sp_reference);
+		try
+		{
+			WorkerThreadInt *newWorker = new WorkerThread(sp_reference, m_worker_idle_us);
 			m_workerThreads.push_back(newWorker);
-		} catch (std::exception& e) {;
+		} catch (std::exception& e)
+		{
 			ThreadPool_log_error("addworker: failure: %s\n",e.what());
 			return false;
 		}
@@ -266,16 +313,20 @@ bool ThreadPool::addWorker(void) {
 	return false;
 }
 
-bool ThreadPool::delWorker(void) {
+bool ThreadPool::delWorker(void)
+{
 	WorkerThreadInt *deleteWorker = NULL;
 
-	if (m_pool_running) {
+	if (m_pool_running)
+	{
 		lock_guard<mutex> lock(m_worker_lock); // lock before worker access
 		worker_list_type::iterator workerThreads_it = m_workerThreads.begin();
-		while (workerThreads_it != m_workerThreads.end()) {
+		while (workerThreads_it != m_workerThreads.end())
+		{
 			WorkerThread *tmpWorker = dynamic_cast<WorkerThread*>(*workerThreads_it);
 
-			if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle) {
+			if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle)
+			{
 				m_workerThreads.erase(workerThreads_it);
 				deleteWorker = *workerThreads_it;
 				break;
@@ -284,7 +335,8 @@ bool ThreadPool::delWorker(void) {
 		}
 	}
 
-	if(deleteWorker){
+	if(deleteWorker)
+	{
 		delete deleteWorker;
 		return true;
 	}
@@ -292,24 +344,29 @@ bool ThreadPool::delWorker(void) {
 	return false;
 }
 
-void ThreadPool::clearQueue(void){
+void ThreadPool::clearQueue(void)
+{
 	lock_guard<mutex> g(m_functor_lock);
 
 	functor_queue_type::iterator queue_it = m_functor_queue.begin();
-	while(queue_it != m_functor_queue.end()){
+	while(queue_it != m_functor_queue.end())
+	{
 		delete *queue_it;
 		queue_it = m_functor_queue.erase(queue_it);
 	}
 }
 
-void ThreadPool::clearWorker(void){
+void ThreadPool::clearWorker(void)
+{
 	lock_guard<mutex> g(m_worker_lock);
 
 	worker_list_type::iterator worker_it = m_workerThreads.begin();
-	while(worker_it != m_workerThreads.end()){
+	while(worker_it != m_workerThreads.end())
+	{
 
 		WorkerThread *worker = dynamic_cast<WorkerThread*>(*worker_it);
-		if(worker){
+		if(worker)
+		{
 			worker->m_fast_shutdown = true;
 		}
 		delete *worker_it;
@@ -317,7 +374,8 @@ void ThreadPool::clearWorker(void){
 	}
 }
 #ifndef NO_DYNAMIC_TP_SUPPORT
-void ThreadPool::handleWorkerCount(void) {
+void ThreadPool::handleWorkerCount(void)
+{
 	bool deleteWorker = false;
 
 	{
@@ -331,10 +389,12 @@ void ThreadPool::handleWorkerCount(void) {
 		ThreadPool_log_trace("max_queue_size: %i\n", max_queue_size);
 	}
 	// add needed worker threads
-	while (getWorkerCount() < getLowWatermark()) {
+	while (getWorkerCount() < getLowWatermark())
+	{
 		//add new worker thread
 		ThreadPool_log_debug("try add worker\n");
-		if (!addWorker()){
+		if (!addWorker())
+		{
 			//adding not successful -> exit loop
 			break;
 		}
@@ -346,9 +406,11 @@ void ThreadPool::handleWorkerCount(void) {
 
 		// add ondemand worker threads
 		if (m_functor_queue.size() > max_queue_size
-				&& getWorkerCount() < getHighWatermark()) {
+				&& getWorkerCount() < getHighWatermark())
+		{
 			//added new worker thread
-			if (addWorker()) {
+			if (addWorker())
+			{
 				ThreadPool_log_debug("new worker (ondemand): %i of %i\n", (int)m_workerThreads.size(), (int)getHighWatermark());
 			}
 		}
@@ -358,13 +420,15 @@ void ThreadPool::handleWorkerCount(void) {
 		lock_guard<mutex> lock(m_functor_lock); // lock before queue access
 		//  try to remove worker threads
 		if (m_functor_queue.size() == 0
-				&& getWorkerCount() > getLowWatermark()) {
+				&& getWorkerCount() > getLowWatermark())
+		{
 			deleteWorker = true;
 		}
 	}
 
 
-	if(deleteWorker){
+	if(deleteWorker)
+	{
 		delWorker();
 	}
 
@@ -374,17 +438,20 @@ void ThreadPool::handleWorkerCount(void) {
 
 #ifndef NO_DELAYED_TP_SUPPORT
 
-FunctorInt *DelayedFunctor::releaseFunctor() {
+FunctorInt *DelayedFunctor::releaseFunctor()
+{
 	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
 	return m_functor.release();						//return reference
 }
 
-void DelayedFunctor::resetFunctor(FunctorInt *functor) {
+void DelayedFunctor::resetFunctor(FunctorInt *functor)
+{
 	TP_NS::lock_guard<TP_NS::mutex> g(m_lock_functor);
 	m_functor.reset(functor);
 }
 
-void ThreadPool::checkDelayedQueue(void){
+void ThreadPool::checkDelayedQueue(void)
+{
 	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
 	  
 	  lock_guard<mutex> lock(m_delayed_lock);		//lock
@@ -392,7 +459,8 @@ void ThreadPool::checkDelayedQueue(void){
 	  ThreadPool_log_trace("m_delayed_queue.size():%d\n",m_delayed_queue.size());
 	  
 	  struct timeval tnow;
-	  if( gettimeofday(&tnow, 0) != 0){
+	  if( gettimeofday(&tnow, 0) != 0)
+	  {
 	     return;
 	  }
 	    long msec;
@@ -407,11 +475,14 @@ void ThreadPool::checkDelayedQueue(void){
 
 	    	FunctorInt *p_tmp_Functor = (*delayed_it)->releaseFunctor();
 	      // add current functor to queue
-	      if( ((p_tmp_Functor = delegateFunctor(p_tmp_Functor))) == NULL ){
+	      if( ((p_tmp_Functor = delegateFunctor(p_tmp_Functor))) == NULL )
+	      {
 	    	  //adding successful -> remove from delayed list
 	    	  delayed_it = m_delayed_queue.erase(delayed_it);
 	    	  continue;
-	      } else {
+	      }
+	      else
+	      {
 
 	    	  // oh no got it back -> readd reference to delayedFunctor and try again later
 	    	  (*delayed_it)->resetFunctor(p_tmp_Functor);
@@ -422,15 +493,17 @@ void ThreadPool::checkDelayedQueue(void){
 	  
 	}
 
-void ThreadPool::clearDelayedList( void ){
+void ThreadPool::clearDelayedList( void )
+{
 	lock_guard<mutex> g(m_delayed_lock);
 	m_delayed_queue.clear();
 }
 
 
-shared_ptr<DelayedFunctorInt> ThreadPool::delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor){
-
-	if(m_delayed_queue.size() < DELAYED_FUNCTOR_MAX){
+shared_ptr<DelayedFunctorInt> ThreadPool::delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor)
+{
+	if(m_delayed_queue.size() < DELAYED_FUNCTOR_MAX)
+	{
 		ThreadPool_log_trace("add DelayedFunctor #%i", m_delayed_queue.size() + 1);
 		lock_guard<mutex> lock(m_delayed_lock);
 

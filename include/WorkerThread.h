@@ -66,18 +66,30 @@
 #endif
 
 
+#ifndef DEFAULT_WORKER_IDLE_US
+	#define DEFAULT_WORKER_IDLE_US 1000
+#endif
+
 namespace icke2063 {
 namespace threadpool {
 
 class WorkerThread: public WorkerThreadInt {
 	friend class ThreadPool;
 public:
-	WorkerThread(TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference);
+	WorkerThread(TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference
+			, uint32_t worker_idle_us = DEFAULT_WORKER_IDLE_US);
 
 	virtual ~WorkerThread();
 
 	void startThread(void);
 	void stopThread(void);
+
+	/**
+	 * set idle time between two worker function queue access
+	 * - higher idle time -> lower cpu usage
+	 * @param worker_idle:	idle time in us
+	 */
+	void setWorkerIdleTime(uint32_t worker_idle_us);
 
 	/**
 	 * enumeration of WorkerThread states
@@ -88,6 +100,10 @@ public:
 		worker_finished=0x02	//!< worker_finished
 	};
 
+	/**
+	 * return status of current Worker object
+	 * @return status value
+	 */
 	enum worker_status getStatus(){return m_status;}
 
 
@@ -122,6 +138,13 @@ private:
 	 * shared reference to basepool object
 	 */
 	TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
+
+	/**
+	 * Waiting time within main thread
+	 * - reduce cpu load
+	 * @todo make variable static ?!?
+	 */
+	uint32_t m_worker_idle_us;
 };
 
 } /* namespace common_cpp */

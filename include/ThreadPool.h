@@ -68,8 +68,8 @@
 #include "ThreadPoolInt/PrioPoolInt.h"
 #include "ThreadPoolInt/Ext_Ref.h"
 
-#ifndef DEFAULT_MAIN_SLEEP_US
-	#define DEFAULT_MAIN_SLEEP_US 1000
+#ifndef DEFAULT_TP_MAINLOOP_IDLE_US
+	#define DEFAULT_TP_MAINLOOP_IDLE_US 1000
 #endif
 
 //logging macros
@@ -163,7 +163,20 @@ public:
 	ThreadPool(uint8_t worker_count = 1, bool auto_start = true);
 	virtual ~ThreadPool();
 
-	 ///Implementations for BasePoolInt
+	/**
+	 *	Set idle time for main loop
+	 *	- reduce cpu load
+	 */
+	void setTPMainLoopIdleTime(uint32_t main_idle_us);
+
+	/**
+	 * Set idle time for all worker threads (more detail @see WorkerThread)
+	 * @param worker_idle
+	 */
+	void setAllWorkerIdleTime(uint32_t worker_idle_us);
+
+
+	///Implementations for BasePoolInt
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object
@@ -272,7 +285,11 @@ protected:
 	bool m_loop_running;
 
 	/// sleep time between every loop of main thread
-	uint32_t m_main_sleep_us;
+	uint32_t m_main_idle_us;
+
+	/// idle time for worker threads
+	uint32_t m_worker_idle_us;
+
 };
 
 } /* namespace threadpool */
