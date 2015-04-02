@@ -31,14 +31,17 @@
 	#include <thread>
 
 	#define TP_WT_NS std
-	#define OVERRIDE override
+#ifndef TP_OVERRIDE
+	#define TP_OVERRIDE override
+#endif
 #else
 	#include <boost/shared_ptr.hpp>
 	#include <boost/thread.hpp>
 
 	#define TP_WT_NS boost
-
-	#define OVERRIDE
+#ifndef TP_OVERRIDE
+	#define TP_OVERRIDE
+#endif
 #endif
 
 
@@ -98,7 +101,7 @@ private:
 	 */
 	worker_status m_status;					//status of current thread
 
-	virtual void worker_function( void ) OVERRIDE;
+	virtual void worker_function( void ) TP_OVERRIDE;
   	/**
 	 * worker thread object
 	 */

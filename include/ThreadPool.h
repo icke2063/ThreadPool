@@ -40,7 +40,9 @@
 	#include <thread>
 
 	#define TP_NS std
-	#define OVERRIDE override
+#ifndef TP_OVERRIDE
+	#define TP_OVERRIDE override
+#endif
 #else
 	//C++03
 	#include <auto_ptr.h>
@@ -49,9 +51,10 @@
 	#include <boost/thread/mutex.hpp>
 	#include <boost/thread/thread.hpp>
 
-
 	#define TP_NS boost
-	#define OVERRIDE
+#ifndef TP_OVERRIDE
+	#define TP_OVERRIDE
+#endif
 #endif
 
 //common_cpp
@@ -117,14 +120,14 @@ public:
 	 * - lock list
 	 * - release smartpointer
 	 */
-	virtual FunctorInt *releaseFunctor() OVERRIDE;
+	virtual FunctorInt *releaseFunctor() TP_OVERRIDE;
 
 	/**
 	 * delete stored FunctorInt
 	 * - lock
 	 * - reset smartpointer
 	 */
-	virtual void resetFunctor(FunctorInt *functor) OVERRIDE;
+	virtual void resetFunctor(FunctorInt *functor) TP_OVERRIDE;
 
 private:
 	// lock for reference access
@@ -168,11 +171,12 @@ public:
 #ifndef NO_PRIORITY_TP_SUPPORT
 	FunctorInt *delegateFunctor(FunctorInt *work, uint8_t add_mode);
 
-	virtual FunctorInt *delegateFunctor(FunctorInt *work) OVERRIDE {
+	virtual FunctorInt *delegateFunctor(FunctorInt *work) TP_OVERRIDE
+	{
 		return delegateFunctor(work, TPI_ADD_Default);
 	}
 #else
-	virtual FunctorInt *delegateFunctor(FunctorInt *work) OVERRIDE;
+	virtual FunctorInt *delegateFunctor(FunctorInt *work) TP_OVERRIDE;
 #endif
 
 	bool isPoolLoopRunning(){return m_loop_running;}
@@ -183,19 +187,19 @@ public:
 
 #ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
-	virtual TP_NS::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor) OVERRIDE;
+	virtual TP_NS::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor) TP_OVERRIDE;
 #endif
 #ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt
-	virtual FunctorInt *delegatePrioFunctor(FunctorInt *work) OVERRIDE;
+	virtual FunctorInt *delegatePrioFunctor(FunctorInt *work) TP_OVERRIDE;
 #endif
 protected:
 
 	 ///Implementations for BasePoolInt
-	virtual bool addWorker(void) OVERRIDE;
-	virtual bool delWorker(void) OVERRIDE;
-	virtual void clearQueue(void) OVERRIDE;
-	virtual void clearWorker(void) OVERRIDE;
+	virtual bool addWorker(void) TP_OVERRIDE;
+	virtual bool delWorker(void) TP_OVERRIDE;
+	virtual void clearQueue(void) TP_OVERRIDE;
+	virtual void clearWorker(void) TP_OVERRIDE;
 
 	///lock functor queue
 	TP_NS::mutex	m_functor_lock;
@@ -205,12 +209,12 @@ protected:
 #ifndef NO_DELAYED_TP_SUPPORT
 
 	///Implementations for DelayedPoolInt
-	virtual void checkDelayedQueue(void) OVERRIDE;
+	virtual void checkDelayedQueue(void) TP_OVERRIDE;
 
 	/**
 	 *	clear delayed list
 	 */
-	virtual void clearDelayedList( void ) OVERRIDE;
+	virtual void clearDelayedList( void ) TP_OVERRIDE;
 #endif
 #ifndef NO_DYNAMIC_TP_SUPPORT
 	///Implementations for DynamicPoolInt
@@ -219,7 +223,7 @@ protected:
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
-	virtual void handleWorkerCount(void) OVERRIDE;
+	virtual void handleWorkerCount(void) TP_OVERRIDE;
 #endif
 
 	///own stuff to get the other stuff running
