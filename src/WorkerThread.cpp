@@ -26,111 +26,115 @@
 namespace icke2063 {
 namespace threadpool {
 
-WorkerThread::WorkerThread(shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference,uint32_t worker_idle_us):
+WorkerThread::WorkerThread(BasePoolInt *ref_pool, uint32_t worker_idle_us):
 	m_status(worker_idle),
 	m_worker_running(true),
 	m_fast_shutdown(false),
-	m_worker_idle_us(worker_idle_us),
-	sp_basepool(sp_reference)
+	p_basepool(ref_pool)
 {
+
+	int result = 0;
 
 	WorkerThread_log_info("WorkerThread[%p] \n", (void*)this);
 
 	// create new worker thread
-	try
+	if ( 0 != ( result = pthread_create(&id_worker_thread, NULL, pthread_func, this)) )
 	{
-		m_worker_thread.reset(new thread(&WorkerThread::worker_function,this));
+		ThreadPool_log_error("create worker thread failure: %i \n", result);
+		throw std::runtime_error("create worker thread failure");
 	}
-	catch (std::exception& e)
+
+	// create new thread condition
+	if ( 0 != ( result = pthread_cond_init(&m_worker_cond, NULL)) )
 	{
-		WorkerThread_log_error("WorkerThread: init failure: %s\n",e.what());
-		throw e;
+		WorkerThread_log_error("WorkerThread: create condition failure: %i\n", result);
+		throw std::runtime_error("cannot create condition");
 	}
 }
 
 WorkerThread::~WorkerThread()
 {
-
 	int wait_count=0;
 	WorkerThread_log_info("~WorkerThread[%p]\n", (void*)this);
 
+	resetBaseRef();
+
 	m_worker_running = false; //disable worker thread
+	pthread_cond_signal(&m_worker_cond);
 
 	/**
 	 * wait for ending worker thread function
 	 * @todo how to kill blocked thread function?
 	 */
 	while (m_status != worker_finished
-			&& !(m_fast_shutdown && wait_count++ > 1000))
+			&& !(m_fast_shutdown
+					&& wait_count++ > 1000))
 	{
 		WorkerThread_log_trace("~wait for finish worker[%p]\n", this);
-
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-		this_thread::sleep_for(chrono::microseconds(10));
-#else
-		usleep(10);
-#endif
+		usleep(100);
 	}
-
 
 	if (m_status == worker_finished)
 	{
 		//at this point the worker thread should have ended -> join it
-		if (m_worker_thread.get() && m_worker_thread->joinable()) {
-			m_worker_thread->join();
+		if (id_worker_thread > 0 )
+		{
+			pthread_join(id_worker_thread, NULL);
+			pthread_cond_destroy(&m_worker_cond);
 		}
 	}
 	else
 	{
 		WorkerThread_log_error("Reset unfinished thread[%p]\n", (void*)this);
-		m_worker_thread.reset(NULL);
+		/// @todo[icke2063] how to kill a thread by thread id?
 	}
 	WorkerThread_log_debug("~~WorkerThread[%p]\n", (void*)this);
 
 }
 
-void WorkerThread::setWorkerIdleTime(uint32_t worker_idle_us)
-{
-	m_worker_idle_us = worker_idle_us;
-}
-
-
 void WorkerThread::worker_function(void)
 {
 	FunctorInt *curFunctor = NULL;
+	pthread_mutex_t fakeMutex = PTHREAD_MUTEX_INITIALIZER;
+
 	while (m_worker_running)
 	{
 		{
 			curFunctor = NULL;
-			this_thread::yield();
+			pthread_yield();
 			if (!m_worker_running)
 			{
 				break;
 			}
 
-			if (sp_basepool.get())
 			{
-				ThreadPool *p_base = dynamic_cast<ThreadPool*>(sp_basepool->getRef());
 				std::lock_guard<std::mutex> g(pool_lock);
+				ThreadPool *p_base = dynamic_cast<ThreadPool*>(p_basepool);
 
 				if (p_base)
 				{ //parent object valid
-					if (!m_worker_running){
-						break;
 					std::lock_guard<std::mutex> lock(p_base->m_functor_lock); // lock before queue access
+					if (m_worker_running)
+					{
+						if (p_base->m_functor_queue.size() > 0)
+						{
+							curFunctor = p_base->m_functor_queue.front(); // get next functor from queue
+							p_base->m_functor_queue.pop_front(); // remove functor from queue
+						}
 					}
-
-					if (p_base->m_functor_queue.size() > 0) {
-						curFunctor = p_base->m_functor_queue.front(); // get next functor from queue
-						p_base->m_functor_queue.pop_front(); // remove functor from queue
-					}
-
 				}
 				else
 				{
-					break;
+					m_worker_running = false;
 				}
 			}
+
+			//exit loop
+			if (!m_worker_running)
+			{
+				break;
+			}
+
 
 			if (curFunctor != NULL)
 			{
@@ -146,16 +150,14 @@ void WorkerThread::worker_function(void)
 					WorkerThread_log_error("Exception in functor_function();\n");
 				}
 				delete curFunctor;	//delete object
-				m_status = worker_idle; //
 			}
 			else
 			{
-				//nothing to do -> sleept a while (reduce cpu load)
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-				this_thread::sleep_for(chrono::microseconds(m_worker_idle_us));
-#else
-				usleep(m_worker_idle_us);
-#endif
+				//nothing to do -> wait for work (reduce cpu load)
+				m_status = worker_idle;
+			    pthread_mutex_lock(&fakeMutex);
+				pthread_cond_wait(&m_worker_cond, &fakeMutex);
+				pthread_mutex_unlock(&fakeMutex);
 			}
 		}
 	}
@@ -165,6 +167,38 @@ void WorkerThread::worker_function(void)
 	return; //running mode changed -> exit thread
 }
 
+bool WorkerThread::wakeupWorker( void )
+{
+	if ( m_status == worker_idle )
+	{
+		if ( 0 == pthread_cond_signal(&m_worker_cond))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void* WorkerThread::pthread_func(void * ptr)
+{
+	WorkerThread* p_self = dynamic_cast<WorkerThread*>((WorkerThread*)ptr);
+
+	if( p_self == NULL )
+	{
+		return NULL;
+	}
+
+	p_self->worker_function();
+
+	return NULL;
+}
+
+void WorkerThread::resetBaseRef( void )
+{
+	std::lock_guard<std::mutex> g(pool_lock);
+	p_basepool = NULL;
+
+}
 
 } /* namespace common_cpp */
 } /* namespace icke2063 */

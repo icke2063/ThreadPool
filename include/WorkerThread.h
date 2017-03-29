@@ -26,9 +26,10 @@
 
 #include <icke2063_TP_config.h>
 
+#include <pthread.h>
+
 //C++11
 #include <memory>
-#include <thread>
 
 #ifndef TP_OVERRIDE
 	#define TP_OVERRIDE override
@@ -65,20 +66,15 @@ namespace threadpool {
 class WorkerThread: public WorkerThreadInt {
 	friend class ThreadPool;
 public:
-	WorkerThread(std::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference
+	WorkerThread(BasePoolInt *ref_pool
 			, uint32_t worker_idle_us = DEFAULT_WORKER_IDLE_US);
 
 	virtual ~WorkerThread();
 
-	void startThread(void);
-	void stopThread(void);
-
 	/**
-	 * set idle time between two worker function queue access
-	 * - higher idle time -> lower cpu usage
-	 * @param worker_idle:	idle time in us
+	 * reset reference to Threadpool base object
 	 */
-	void setWorkerIdleTime(uint32_t worker_idle_us);
+	void resetBaseRef( void );
 
 	/**
 	 * enumeration of WorkerThread states
@@ -95,6 +91,10 @@ public:
 	 */
 	enum worker_status getStatus(){return m_status;}
 
+	/**
+	 * signal idle worker to wakeup
+	 */
+	bool wakeupWorker( void );
 
 private:
 
@@ -107,10 +107,18 @@ private:
 	worker_status m_status;					//status of current thread
 
 	virtual void worker_function( void ) TP_OVERRIDE;
+
+	static void* pthread_func(void * ptr);
+
   	/**
 	 * worker thread object
 	 */
-	std::unique_ptr<std::thread> m_worker_thread;
+	pthread_t id_worker_thread = 0;
+
+	/**
+	 * condition to wait/signal
+	 */
+	pthread_cond_t m_worker_cond = PTHREAD_COND_INITIALIZER;
 
 	/**
 	 * running flag for worker thread
@@ -124,16 +132,11 @@ private:
 	bool m_fast_shutdown;
 
 	/**
-	 * shared reference to basepool object
+	 * reference to basepool object
 	 */
-	std::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
+	BasePoolInt *p_basepool;
+	std::mutex pool_lock;
 
-	/**
-	 * Waiting time within main thread
-	 * - reduce cpu load
-	 * @todo make variable static ?!?
-	 */
-	uint32_t m_worker_idle_us;
 };
 
 } /* namespace common_cpp */

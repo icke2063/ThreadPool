@@ -73,10 +73,11 @@ ThreadPool::~ThreadPool() {
 	ThreadPool_log_info("~ThreadPool[%p]\n", (void*)this);
 	m_pool_running = false; //disable ThreadPool
 
-	if (m_main_thread.get() && m_main_thread->joinable()) {
-			m_main_thread->join();
+	if (id_main_thread > 0)
+	{
+			pthread_join(id_main_thread, NULL);
+			id_main_thread = 0;
 	}
-	m_main_thread.reset();
 
 #ifndef NO_DELAYED_TP_SUPPORT
 	///DelayedPoolInt
@@ -92,14 +93,15 @@ ThreadPool::~ThreadPool() {
 
 
 bool ThreadPool::startPoolLoop() {
-	if(m_pool_running){
+	if(m_pool_running)
+	{
 		m_loop_running = true;
-		if (m_main_thread.get() == NULL) {
-			try {
-				ThreadPool_log_debug("new main thread[%p]\n", (void*)this);
-				m_main_thread.reset(new std::thread(&ThreadPool::main_thread_func, this)); // create new main thread_function
-			} catch (std::exception& e) {
-				ThreadPool_log_error("init main_thread failure: %s", e.what());
+		if (id_main_thread == 0)
+		{
+
+			if ( 0 != pthread_create(&id_main_thread, NULL, pthread_func, this) )
+			{
+				ThreadPool_log_error("create main_thread failure");
 				m_loop_running = false;
 				return false;
 			}
@@ -116,7 +118,7 @@ void ThreadPool::stopPoolLoop() {
 void ThreadPool::main_thread_func(void){
     main_pre();
     while (m_pool_running) {
-	std::this_thread::yield();
+	pthread_yield();
       if(m_pool_running)
       {
     	  ThreadPool_log_trace("main_loop\n");
@@ -125,13 +127,23 @@ void ThreadPool::main_thread_func(void){
       /**
        * @todo replace simple wait by calculated timediff idletime - looptime
        */
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-		std::this_thread::sleep_for(std::chrono::microseconds(m_main_idle_us));
-#else
 		usleep(m_main_idle_us);
-#endif
     }
     main_past();
+}
+
+void* ThreadPool::pthread_func(void * ptr)
+{
+	ThreadPool* p_self = dynamic_cast<ThreadPool*>((ThreadPool*)ptr);
+
+	if( p_self == NULL )
+	{
+		return NULL;
+	}
+
+	p_self->main_thread_func();
+
+	return NULL;
 }
 
 void ThreadPool::main_pre(void)
@@ -160,25 +172,11 @@ void ThreadPool::setTPMainLoopIdleTime(uint32_t main_idle_us)
 	m_main_idle_us = main_idle_us;
 }
 
-void ThreadPool::setAllWorkerIdleTime(uint32_t worker_idle_us)
-{
-
-	m_worker_idle_us = worker_idle_us;	//set local variable for new Worker creation
-
-	std::lock_guard<std::mutex> lock(m_worker_lock); // lock before worker list access
-	worker_list_type::iterator worker_it = m_workerThreads.begin();
-	while(worker_it != m_workerThreads.end())
-	{
-		((WorkerThread*)(*worker_it))->setWorkerIdleTime(worker_idle_us);
-		++worker_it;
-	}
-}
-
-
 #ifndef NO_PRIORITY_TP_SUPPORT
-///advanced implemenatation of default function
+///advanced implementation of default function
 FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode)
 {
+	FunctorInt * result = work;
 
 	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX))
 	{
@@ -195,7 +193,7 @@ FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode)
 				tmp_functor->setPriority(100); //set highest priority to hold list in order
 				std::lock_guard<std::mutex> lock(m_functor_lock);
 				m_functor_queue.push_front(work);
-				return NULL;
+				result = NULL;
 			}
 			break;
 			case TPI_ADD_FiFo:
@@ -204,23 +202,35 @@ FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode)
 				tmp_functor->setPriority(0); //set lowest priority to hold list in order
 				std::lock_guard<std::mutex> lock(m_functor_lock);
 				m_functor_queue.push_back(work);
-				return NULL;
+				result = NULL;
 			}
 			case TPI_ADD_Prio:
 				ThreadPool_log_debug("TPI_ADD_Prio\n");
 			default:
-				return delegatePrioFunctor(tmp_functor);
+				result = delegatePrioFunctor(tmp_functor);
 		}
 	}
 
-	ThreadPool_log_error("failure add Functor #%i\n", (int)m_functor_queue.size() + 1);
-	return work;
+	if(result == NULL)
+	{
+		wakeupWorker();
+	}
+	else
+	{
+		ThreadPool_log_error("failure add Functor #%i\n", (int)m_functor_queue.size() + 1);
+	}
+
+
+	return result;
 }
 #else
-FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work) {
-	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX)) {
+FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work)
+{
+	if (m_pool_running && (m_functor_queue.size() < FUNCTOR_MAX))
+	{
 		std::lock_guard<std::mutex> lock(m_functor_lock);
 		m_functor_queue.push_back(work);
+		wakeupWorker();
 		return NULL;
 	}
 	return work;
@@ -289,7 +299,7 @@ bool ThreadPool::addWorker(void)
 		std::lock_guard<std::mutex> lock(m_worker_lock); // lock before worker list access
 		try
 		{
-			WorkerThreadInt *newWorker = new WorkerThread(sp_reference, m_worker_idle_us);
+			WorkerThreadInt *newWorker = new WorkerThread(this, m_worker_idle_us);
 			m_workerThreads.push_back(newWorker);
 		} catch (std::exception& e)
 		{
@@ -315,7 +325,9 @@ bool ThreadPool::delWorker(void)
 
 			if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle)
 			{
+
 				m_workerThreads.erase(workerThreads_it);
+				tmpWorker->resetBaseRef();
 				deleteWorker = *workerThreads_it;
 				break;
 			}
@@ -330,6 +342,24 @@ bool ThreadPool::delWorker(void)
 	}
 
 	return false;
+}
+
+void ThreadPool::wakeupWorker(void)
+{
+	ThreadPool_log_debug("wakeupWorker[%p]\n", (void*)this);
+	std::lock_guard<std::mutex> lock(m_worker_lock); // lock before worker list access
+
+	worker_list_type::iterator workerThreads_it = m_workerThreads.begin();
+	while (workerThreads_it != m_workerThreads.end()) {
+		WorkerThread *tmpWorker = dynamic_cast<WorkerThread*>(*workerThreads_it);
+
+		if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle)
+		{
+			if( tmpWorker->wakeupWorker() );
+			return;
+		}
+		++workerThreads_it;
+	}
 }
 
 void ThreadPool::clearQueue(void)
@@ -440,8 +470,6 @@ void DelayedFunctor::resetFunctor(FunctorInt *functor)
 
 void ThreadPool::checkDelayedQueue(void)
 {
-	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
-	  
 	  std::lock_guard<std::mutex> lock(m_delayed_lock);		//lock
 	  
 	  ThreadPool_log_trace("m_delayed_queue.size():%d\n",m_delayed_queue.size());

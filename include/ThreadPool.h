@@ -28,12 +28,12 @@
 #include <icke2063_TP_config.h>
 
 #include <sys/time.h>
+#include <pthread.h>
 
 
 //C++11
 #include <memory>
 #include <mutex>
-#include <thread>
 
 #ifndef TP_OVERRIDE
 	#define TP_OVERRIDE override
@@ -48,7 +48,6 @@
 	#include "ThreadPoolInt/DynamicPoolInt.h"
 #endif
 #include "ThreadPoolInt/PrioPoolInt.h"
-#include "ThreadPoolInt/Ext_Ref.h"
 
 #ifndef DEFAULT_TP_MAINLOOP_IDLE_US
 	#define DEFAULT_TP_MAINLOOP_IDLE_US 1000
@@ -118,8 +117,7 @@ private:
 #endif
 
 class ThreadPool:
-	public Ext_Ref_Int
-	,public BasePoolInt
+	public BasePoolInt
 #ifndef NO_DELAYED_TP_SUPPORT
 	,public DelayedPoolInt
 #endif
@@ -150,13 +148,6 @@ public:
 	 *	- reduce cpu load
 	 */
 	void setTPMainLoopIdleTime(uint32_t main_idle_us);
-
-	/**
-	 * Set idle time for all worker threads (more detail @see WorkerThread)
-	 * @param worker_idle
-	 */
-	void setAllWorkerIdleTime(uint32_t worker_idle_us);
-
 
 	///Implementations for BasePoolInt
 	/**
@@ -196,11 +187,14 @@ protected:
 	virtual void clearQueue(void) TP_OVERRIDE;
 	virtual void clearWorker(void) TP_OVERRIDE;
 
+	void wakeupWorker(void);
+
 	///lock functor queue
 	std::mutex	m_functor_lock;
 
 	///lock worker queue
 	std::mutex	m_worker_lock;
+
 #ifndef NO_DELAYED_TP_SUPPORT
 
 	///Implementations for DelayedPoolInt
@@ -261,7 +255,11 @@ protected:
 	 */
 	void main_thread_func(void);
 
-	std::auto_ptr<std::thread> m_main_thread;
+private:
+	static void* pthread_func(void * ptr);
+
+protected:
+	pthread_t id_main_thread = 0;
 
 	///running flag
 	bool m_loop_running;
