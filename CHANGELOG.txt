@@ -1,3 +1,7 @@
+v0.3.0
+------
+ * remove boost fallback
+
 v0.2.3
 ------
  * change testing

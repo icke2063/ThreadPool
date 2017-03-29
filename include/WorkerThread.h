@@ -26,24 +26,13 @@
 
 #include <icke2063_TP_config.h>
 
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-	#include <memory>
-	#include <thread>
+//C++11
+#include <memory>
+#include <thread>
 
-	#define TP_WT_NS std
 #ifndef TP_OVERRIDE
 	#define TP_OVERRIDE override
 #endif
-#else
-	#include <boost/shared_ptr.hpp>
-	#include <boost/thread.hpp>
-
-	#define TP_WT_NS boost
-#ifndef TP_OVERRIDE
-	#define TP_OVERRIDE
-#endif
-#endif
-
 
 //common_cpp
 #include <ThreadPool.h>
@@ -76,7 +65,7 @@ namespace threadpool {
 class WorkerThread: public WorkerThreadInt {
 	friend class ThreadPool;
 public:
-	WorkerThread(TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference
+	WorkerThread(std::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference
 			, uint32_t worker_idle_us = DEFAULT_WORKER_IDLE_US);
 
 	virtual ~WorkerThread();
@@ -121,7 +110,7 @@ private:
   	/**
 	 * worker thread object
 	 */
-	std::auto_ptr<TP_WT_NS::thread> m_worker_thread;
+	std::unique_ptr<std::thread> m_worker_thread;
 
 	/**
 	 * running flag for worker thread
@@ -137,7 +126,7 @@ private:
 	/**
 	 * shared reference to basepool object
 	 */
-	TP_WT_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
+	std::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_basepool;
 
 	/**
 	 * Waiting time within main thread

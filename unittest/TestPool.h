@@ -39,7 +39,7 @@ public:
 	};
 
 public:
-	Test_Functor(TP_NS::shared_ptr<uint32_t> functor_finished_flag, uint32_t time_to_wait_ms = 0, bool silent = false):
+	Test_Functor(std::shared_ptr<uint32_t> functor_finished_flag, uint32_t time_to_wait_ms = 0, bool silent = false):
 		Dummy_Functor(time_to_wait_ms, silent),
 		sp_functor_finished_flag(functor_finished_flag){
 		if(sp_functor_finished_flag.get()){
@@ -59,14 +59,14 @@ public:
 	}
 
 private:
-	TP_NS::shared_ptr<uint32_t> sp_functor_finished_flag;
+	std::shared_ptr<uint32_t> sp_functor_finished_flag;
 
 };
 
 
 class Endless_Functor: public Functor {
 public:
-	Endless_Functor(TP_NS::shared_ptr<bool> running_flag):
+	Endless_Functor(std::shared_ptr<bool> running_flag):
 		sp_running_flag(running_flag){
 	};
 	virtual ~Endless_Functor(){};
@@ -80,7 +80,7 @@ public:
 	}
 
 private:
-	TP_NS::shared_ptr<bool> sp_running_flag;
+	std::shared_ptr<bool> sp_running_flag;
 
 };
 

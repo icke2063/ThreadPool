@@ -5,7 +5,6 @@
  * @brief  External reference with usage of c++11 threads, mutex,...
  * 			, but no use of shared_from this
  *
- * Namespace switching: see README.md
  *
  * Copyright © 2014 icke2063 <icke2063@gmail.com>
  *
@@ -30,19 +29,9 @@
 
 #include <icke2063_TP_config.h>
 
-#ifdef TPER_NS
-#error "namespace constant 'TPER_NS' already defined"
-#endif
-
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-	#include <memory>
-	#include <mutex>
-	#define TPER_NS std
-#else
-	#include <boost/shared_ptr.hpp>
-	#include <boost/thread/locks.hpp>
-	#define TPER_NS boost
-#endif
+//C++ 11
+#include <memory>
+#include <mutex>
 
 namespace icke2063 {
 namespace threadpool {
@@ -62,7 +51,7 @@ namespace threadpool {
  */
 template <class T>
 class Ext_Ref {
-	TPER_NS::mutex m_lock;
+	std::mutex m_lock;
 	T *m_ext_ref;
 public:
 	Ext_Ref(T *ext_ref) :
@@ -70,12 +59,12 @@ public:
 
 	Ext_Ref() { setRef(NULL); }
 
-	TPER_NS::mutex& getLock(void) { return m_lock; }
+	std::mutex& getLock(void) { return m_lock; }
 
 	T *getRef(void) { return m_ext_ref; }
 
 	void setRef(T *ext_ref) {
-		TPER_NS::lock_guard<TPER_NS::mutex> g(m_lock);
+		std::lock_guard<std::mutex> g(m_lock);
 		m_ext_ref = ext_ref;
 	}
 };
@@ -102,7 +91,7 @@ public:
 		}
 	}
 protected:
-	TPER_NS::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference;
+	std::shared_ptr<Ext_Ref<Ext_Ref_Int> > sp_reference;
 };
 
 }

@@ -23,13 +23,6 @@
 
 #include "WorkerThread.h"
 
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-  using namespace std;
-#else
-
-  using namespace boost;
-#endif
-
 namespace icke2063 {
 namespace threadpool {
 
@@ -117,14 +110,14 @@ void WorkerThread::worker_function(void)
 
 			if (sp_basepool.get())
 			{
-				lock_guard<mutex> g(sp_basepool->getLock());
 				ThreadPool *p_base = dynamic_cast<ThreadPool*>(sp_basepool->getRef());
+				std::lock_guard<std::mutex> g(pool_lock);
 
 				if (p_base)
 				{ //parent object valid
-					lock_guard<mutex> lock(p_base->m_functor_lock); // lock before queue access
 					if (!m_worker_running){
 						break;
+					std::lock_guard<std::mutex> lock(p_base->m_functor_lock); // lock before queue access
 					}
 
 					if (p_base->m_functor_queue.size() > 0) {

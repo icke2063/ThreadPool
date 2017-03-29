@@ -9,16 +9,6 @@
 #define ICKE2063_TP_CONFIG_H_
 
 /**
- * Disable C++11 support
- *
- * When this definition is uncommented the whole threadpool
- * project will not use C++11 classes, templates,... anymore. To get the pool
- * running anyway, boost will be used. Then you have to link boost library
- * additional to the application.
- */
-//#define ICKE2063_THREADPOOL_NO_CPP11	1
-
-/**
  * Define count of addable workerthreads
  */
 #ifndef WORKERTHREAD_MAX

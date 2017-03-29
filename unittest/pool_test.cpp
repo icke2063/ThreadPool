@@ -21,8 +21,8 @@ using namespace icke2063::threadpool;
 int main(int argc, char **argv){
 int subtest = 0;
 
-std::auto_ptr<icke2063::threadpool::ThreadPool> testpool;
-std::auto_ptr<icke2063::threadpool::FunctorInt> dummy;
+std::unique_ptr<icke2063::threadpool::ThreadPool> testpool;
+std::unique_ptr<icke2063::threadpool::FunctorInt> dummy;
 
 
 if(argc >= 2){
@@ -124,7 +124,7 @@ if(argc >= 2){
 			printf("Test_Functor[p,1000,1]:\n");
 
 			int counter;
-			TP_NS::shared_ptr<uint32_t> flag(new uint32_t);
+			std::shared_ptr<uint32_t> flag(new uint32_t);
 			(*flag.get()) = icke2063::threadpool::Test_Functor::init;
 			testpool.reset(new icke2063::threadpool::ThreadPool());
 			dummy.reset(new icke2063::threadpool::Test_Functor(flag, 1000, true));
@@ -210,7 +210,7 @@ if(argc >= 2){
 			printf("test input[max worker:%d;max functor:%d]\n",workercount, functorcount);
 			printf("test output{used worker,added functors}\n");
 
-			TP_NS::shared_ptr<bool> flag(new bool);
+			std::shared_ptr<bool> flag(new bool);
 			for (int worker = 1; worker <= workercount; worker++) {
 
 				(*(flag.get())) = true;
@@ -284,7 +284,7 @@ if(argc >= 2){
 			printf("Delayed test\n");
 
 			int counter;
-			TP_NS::shared_ptr<uint32_t> flag(new uint32_t);
+			std::shared_ptr<uint32_t> flag(new uint32_t);
 			struct timeval t_deadline, t_now;
 
 			long int msec;
@@ -309,12 +309,12 @@ if(argc >= 2){
 				printf("passed\n");
 			}
 
-			TP_NS::shared_ptr<DelayedFunctorInt> sp_dfunc(new DelayedFunctor(dummy.release(), &t_deadline));
+			std::shared_ptr<DelayedFunctorInt> sp_dfunc(new DelayedFunctor(dummy.release(), &t_deadline));
 
 
 			if (sp_dfunc.get() != NULL || testpool.get() != NULL || flag.get() != NULL) {
 
-				TP_NS::shared_ptr<DelayedFunctorInt> result = testpool->delegateDelayedFunctor(sp_dfunc);
+				std::shared_ptr<DelayedFunctorInt> result = testpool->delegateDelayedFunctor(sp_dfunc);
 
 				//check result of adding Functor
 				printf("delegate:\t");

@@ -4,7 +4,6 @@
  * @date   28.05.2013
  * @brief  ThreadPoolInt implementation with usage of c++11 threads, mutex,...
  *
- * Namespace switching: see README.md
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -30,31 +29,14 @@
 
 #include <sys/time.h>
 
-#ifdef TP_NS
-#error "namespace constant 'TP_NS' already defined"
-#endif
 
-#ifndef ICKE2063_THREADPOOL_NO_CPP11
-	#include <memory>
-	#include <mutex>
-	#include <thread>
+//C++11
+#include <memory>
+#include <mutex>
+#include <thread>
 
-	#define TP_NS std
 #ifndef TP_OVERRIDE
 	#define TP_OVERRIDE override
-#endif
-#else
-	//C++03
-	#include <auto_ptr.h>
-
-	#include <boost/shared_ptr.hpp>
-	#include <boost/thread/mutex.hpp>
-	#include <boost/thread/thread.hpp>
-
-	#define TP_NS boost
-#ifndef TP_OVERRIDE
-	#define TP_OVERRIDE
-#endif
 #endif
 
 //common_cpp
@@ -118,20 +100,20 @@ public:
 	/**
 	 * get stored FunctorInt
 	 * - lock list
-	 * - release smartpointer
+	 * - release smart pointer
 	 */
 	virtual FunctorInt *releaseFunctor() TP_OVERRIDE;
 
 	/**
 	 * delete stored FunctorInt
 	 * - lock
-	 * - reset smartpointer
+	 * - reset smart pointer
 	 */
 	virtual void resetFunctor(FunctorInt *functor) TP_OVERRIDE;
 
 private:
 	// lock for reference access
-	TP_NS::mutex m_lock_functor;
+	std::mutex m_lock_functor;
 };
 #endif
 
@@ -200,7 +182,7 @@ public:
 
 #ifndef NO_DELAYED_TP_SUPPORT
 	///Implementations for DelayedPoolInt
-	virtual TP_NS::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(TPD_NS::shared_ptr<DelayedFunctorInt> dfunctor) TP_OVERRIDE;
+	virtual std::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(std::shared_ptr<DelayedFunctorInt> dfunctor) TP_OVERRIDE;
 #endif
 #ifndef NO_PRIORITY_TP_SUPPORT
 	///Implementations for PrioPoolInt
@@ -215,10 +197,10 @@ protected:
 	virtual void clearWorker(void) TP_OVERRIDE;
 
 	///lock functor queue
-	TP_NS::mutex	m_functor_lock;
+	std::mutex	m_functor_lock;
 
 	///lock worker queue
-	TP_NS::mutex	m_worker_lock;
+	std::mutex	m_worker_lock;
 #ifndef NO_DELAYED_TP_SUPPORT
 
 	///Implementations for DelayedPoolInt
@@ -279,7 +261,7 @@ protected:
 	 */
 	void main_thread_func(void);
 
-	std::auto_ptr<TP_NS::thread> m_main_thread;
+	std::auto_ptr<std::thread> m_main_thread;
 
 	///running flag
 	bool m_loop_running;
