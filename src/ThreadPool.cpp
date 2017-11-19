@@ -327,10 +327,10 @@ bool ThreadPool::delWorker(void)
 
 			if (tmpWorker && tmpWorker->getStatus() == WorkerThread::worker_idle)
 			{
-
+				deleteWorker = *workerThreads_it;
 				m_workerThreads.erase(workerThreads_it);
 				tmpWorker->resetBaseRef();
-				deleteWorker = *workerThreads_it;
+				
 				break;
 			}
 			++workerThreads_it;
