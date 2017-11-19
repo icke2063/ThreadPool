@@ -204,8 +204,10 @@ FunctorInt *ThreadPool::delegateFunctor(FunctorInt *work, uint8_t add_mode)
 				m_functor_queue.push_back(work);
 				result = NULL;
 			}
+			break;
 			case TPI_ADD_Prio:
 				ThreadPool_log_debug("TPI_ADD_Prio\n");
+				//fall through
 			default:
 				result = delegatePrioFunctor(tmp_functor);
 		}
