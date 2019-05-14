@@ -285,14 +285,14 @@ if(argc >= 2){
 
 			int counter;
 			std::shared_ptr<uint32_t> flag(new uint32_t);
-			struct timeval t_deadline, t_now;
+			std::chrono::steady_clock::time_point t_deadline, t_now;
 
 			long int msec;
 
-			gettimeofday(&t_now,0);
+			t_now = std::chrono::steady_clock::now();
 			t_deadline = t_now;
 
-			t_deadline.tv_sec += 1;
+			t_deadline += std::chrono::seconds(1);
 
 
 			(*flag.get()) = icke2063::threadpool::Test_Functor::init;
@@ -309,7 +309,8 @@ if(argc >= 2){
 				printf("passed\n");
 			}
 
-			std::shared_ptr<DelayedFunctorInt> sp_dfunc(new DelayedFunctor(dummy.release(), &t_deadline));
+			std::shared_ptr<DelayedFunctorInt> sp_dfunc(
+					new DelayedFunctor(dummy.release(), t_deadline));
 
 
 			if (sp_dfunc.get() != NULL || testpool.get() != NULL || flag.get() != NULL) {
@@ -327,11 +328,11 @@ if(argc >= 2){
 
 
 				do{
-					gettimeofday(&t_now, 0);
+					t_now = std::chrono::steady_clock::now();
 
-					msec = (t_now.tv_sec - t_deadline.tv_sec)*1000;
-					msec += (t_now.tv_usec - t_deadline.tv_usec)/1000;
 
+					  msec = (std::chrono::duration<float> (
+							  t_now - t_deadline)).count();
 
 					if((*flag.get()) == icke2063::threadpool::Test_Functor::start){
 						printf("wait[start]:\t");

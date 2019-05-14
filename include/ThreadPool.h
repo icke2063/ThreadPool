@@ -90,7 +90,7 @@ public:
 class DelayedFunctor: public DelayedFunctorInt {
 public:
 
-	DelayedFunctor(FunctorInt *functor, struct timeval *deadline) :
+	DelayedFunctor(FunctorInt *functor, std::chrono::steady_clock::time_point &deadline) :
 			DelayedFunctorInt(functor, deadline) {}
 
 	virtual ~DelayedFunctor(){

@@ -29,6 +29,11 @@
 #include <string>
 #include <stdexcept>
 
+#ifndef NO_DELAYED_TP_SUPPORT
+#include <chrono>
+using namespace std::chrono;
+#endif
+
 //common_cpp
 #include "../include/ThreadPool.h"
 #include "../include/WorkerThread.h"
@@ -472,23 +477,20 @@ void DelayedFunctor::resetFunctor(FunctorInt *functor)
 
 void ThreadPool::checkDelayedQueue(void)
 {
-	  std::lock_guard<std::mutex> lock(m_delayed_lock);		//lock
+    long msec;
+
+	std::lock_guard<std::mutex> lock(m_delayed_lock);		//lock
 	  
 	  ThreadPool_log_trace("m_delayed_queue.size():%d\n",m_delayed_queue.size());
 	  
-	  struct timeval tnow;
-	  if( gettimeofday(&tnow, 0) != 0)
-	  {
-	     return;
-	  }
-	    long msec;
+	  steady_clock::time_point tnow = steady_clock::now();
 	  
 	  delayed_list_type::iterator delayed_it = m_delayed_queue.begin();
-	  while(delayed_it != m_delayed_queue.end()){
-	      
-	    msec=(tnow.tv_sec-(*delayed_it)->getDeadline().tv_sec)*1000;
-	    msec+=(tnow.tv_usec-(*delayed_it)->getDeadline().tv_usec)/1000;	    
-	    
+	  while(delayed_it != m_delayed_queue.end())
+	  {
+		  msec = (std::chrono::duration<float> (
+				  tnow-(*delayed_it)->getDeadline())).count();
+
 	    if(msec >= 0){
 
 	    	FunctorInt *p_tmp_Functor = (*delayed_it)->releaseFunctor();

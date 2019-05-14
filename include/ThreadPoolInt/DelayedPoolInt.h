@@ -32,11 +32,10 @@
 
 #ifndef NO_DELAYED_TP_SUPPORT
 
-#include <sys/time.h>
-
 //C++11
 #include <memory>
 #include <mutex>
+#include <chrono>
 
 #include "BasePoolInt.h"
 
@@ -56,8 +55,9 @@ class DelayedFunctorInt{
     * - store FunctorInt object reference
     * - set deadline
     */
-   DelayedFunctorInt(FunctorInt *functor, struct timeval *deadline):
-    m_functor(functor),m_deadline(*deadline){}
+   DelayedFunctorInt(FunctorInt *functor,
+		   std::chrono::steady_clock::time_point &deadline):
+    m_functor(functor),m_deadline(deadline){}
    
    /**
     * -delete Functor
@@ -68,18 +68,20 @@ class DelayedFunctorInt{
     * get functor deadline
     * - after this timestamp functor should be activated
     */
-   struct timeval getDeadline(){return m_deadline;}
+   std::chrono::steady_clock::time_point getDeadline(){return m_deadline;}
    
    /**
     * set Deadline to current time
     * - Functor should be activated immediately after this function call
     */
-   void resetDeadline(){gettimeofday(&m_deadline,0);}
+   void resetDeadline(){m_deadline =
+		   std::chrono::steady_clock::time_point::max();}
 
    /**
    * set Deadline to given deadline
    */
-  void renewDeadline(struct timeval deadline){m_deadline = deadline;}
+  void renewDeadline(std::chrono::steady_clock::time_point &deadline)
+  	  	  {m_deadline = deadline;}
 
    /**
     * get stored FunctorInt and release reference
@@ -107,7 +109,7 @@ class DelayedFunctorInt{
    /**
     * absolute timestamp after this deadline the functor should be added to threadpool
     */
-   struct timeval m_deadline;
+   std::chrono::steady_clock::time_point m_deadline;
 };
 
 class DelayedPoolInt{ 
@@ -137,7 +139,8 @@ public:
 	 *
 	 * @return	[success] empty shared pointer, [failure] same pointer as input
 	 */
-	virtual std::shared_ptr<DelayedFunctorInt> delegateDelayedFunctor(std::shared_ptr<DelayedFunctorInt> dfunctor) = 0;
+	virtual std::shared_ptr<DelayedFunctorInt>
+	delegateDelayedFunctor(std::shared_ptr<DelayedFunctorInt> dfunctor) = 0;
 
 protected:
 
